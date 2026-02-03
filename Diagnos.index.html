@@ -95,6 +95,22 @@
                 <button onclick="toggleBT()" id="btn-connect" class="w-full bg-gradient-to-r from-blue-600 to-cyan-500 py-3 rounded-lg font-bold text-xs glow">
                     <i class="fab fa-bluetooth mr-2"></i>CONECTAR BLUETOOTH
                 </button>
+                <div class="mt-3 bg-blue-900/20 border border-blue-500/30 rounded p-3 text-xs text-blue-300">
+                    <div class="font-bold mb-2">📱 INSTRUCCIONES:</div>
+                    <div class="text-[10px] space-y-1">
+                        <div>1️⃣ Conectar ELM327 al puerto OBD2</div>
+                        <div>2️⃣ Encender ignición del vehículo</div>
+                        <div>3️⃣ LED del ELM327 parpadeando</div>
+                        <div>4️⃣ Click "CONECTAR BLUETOOTH"</div>
+                        <div>5️⃣ Seleccionar tu ELM327</div>
+                    </div>
+                </div>
+                <div class="mt-3 bg-black border border-gray-700 rounded p-2 max-h-32 overflow-y-auto">
+                    <div class="text-green-400 text-[9px] font-mono" id="console-log">
+                        > Presiona F12 para ver consola completa<br>
+                        > Esperando conexión...
+                    </div>
+                </div>
             </div>
             <div id="tab-live">
                 <div class="grid grid-cols-2 gap-3">
@@ -191,8 +207,182 @@ let s={view:'home',tab:'live',bt:false,cart:[],data:{rpm:0,temp:0,maf:0,map:0,tp
 function showView(v){document.querySelectorAll('[id^="view-"]').forEach(e=>e.classList.add('hidden'));let e=document.getElementById('view-'+v);e&&(e.classList.remove('hidden'),s.view=v)}
 function switchTab(t){document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));event.target.classList.add('active');document.querySelectorAll('[id^="tab-"]').forEach(e=>e.classList.add('hidden'));let e=document.getElementById('tab-'+t);e&&(e.classList.remove('hidden'),s.tab=t)}
 async function toggleBT(){s.bt?disconnectBT():await connectBT()}
-async function connectBT(){if(!navigator.bluetooth){alert('Bluetooth no soportado\\nUsa Chrome Android');sim();return}try{let d=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'OBDII'},{namePrefix:'ELM327'},{namePrefix:'V-LINK'}],optionalServices:['0000fff0-0000-1000-8000-00805f9b34fb']});await d.gatt.connect();s.bt=true;updateUI(true);alert('✅ CONECTADO: '+d.name);sim()}catch(e){e.message.includes('cancel')||(alert('Error. Modo simulación'),sim())}}
-function disconnectBT(){s.bt=false;window.iv&&clearInterval(window.iv);updateUI(false)}
+function log(msg){
+    console.log(msg);
+    let c=document.getElementById('console-log');
+    if(c){
+        c.innerHTML+=`<br>> ${msg}`;
+        c.scrollTop=c.scrollHeight;
+    }
+}
+async function connectBT(){
+    if(!navigator.bluetooth){
+        log('❌ Bluetooth Web API no disponible');
+        alert('⚠️ BLUETOOTH WEB NO SOPORTADO\\n\\nREQUISITOS:\\n✓ Chrome en Android\\n✓ Edge en Windows\\n\\nPASOS:\\n1. Emparejar ELM327 en Ajustes Bluetooth\\n2. Abrir esta app en Chrome\\n3. Intentar conexión');
+        sim();
+        return;
+    }
+    try{
+        log('🔍 Buscando dispositivos ELM327...');
+        let d=await navigator.bluetooth.requestDevice({
+            filters:[
+                {namePrefix:'OBDII'},
+                {namePrefix:'OBD'},
+                {namePrefix:'ELM327'},
+                {namePrefix:'ELM'},
+                {namePrefix:'V-LINK'},
+                {namePrefix:'Vgate'},
+                {namePrefix:'CHX'},
+                {namePrefix:'KONNWEI'},
+                {namePrefix:'VEEPEAK'}
+            ],
+            optionalServices:[
+                '0000fff0-0000-1000-8000-00805f9b34fb',
+                '00001101-0000-1000-8000-00805f9b34fb'
+            ]
+        });
+        log('✓ Dispositivo: '+(d.name||'ELM327'));
+        log('🔗 Conectando GATT...');
+        let srv=await d.gatt.connect();
+        log('✓ GATT conectado');
+        log('📡 Obteniendo servicio SPP...');
+        let svc=await srv.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
+        log('✓ Servicio obtenido');
+        log('⚡ Configurando TX/RX...');
+        let tx=await svc.getCharacteristic('0000fff1-0000-1000-8000-00805f9b34fb');
+        let rx=await svc.getCharacteristic('0000fff2-0000-1000-8000-00805f9b34fb');
+        log('✓ Características OK');
+        window.btDevice=d;
+        window.btTx=tx;
+        window.btRx=rx;
+        await rx.startNotifications();
+        rx.addEventListener('characteristicvaluechanged',handleData);
+        log('✓ Notificaciones activadas');
+        s.bt=true;
+        updateUI(true);
+        await initELM();
+        alert('✅ CONECTADO EXITOSAMENTE\\n\\n'+(d.name||'ELM327'));
+    }catch(e){
+        log('❌ Error: '+e.message);
+        if(!e.message.includes('cancel')){
+            alert('⚠️ ERROR DE CONEXIÓN\\n\\n'+e.message+'\\n\\nVERIFICA:\\n✓ ELM327 encendido (LED parpadeando)\\n✓ Emparejado previamente en Bluetooth\\n✓ Cerca del dispositivo (<10m)\\n✓ No conectado a otra app\\n\\nACTIVANDO SIMULACIÓN...');
+            setTimeout(sim,1500);
+        }
+    }
+}
+async function initELM(){
+    log('🔧 Inicializando ELM327...');
+    await sendCmd('ATZ\\r');
+    await sleep(2000);
+    log('Enviando configuración...');
+    await sendCmd('ATE0\\r');
+    await sleep(300);
+    await sendCmd('ATL0\\r');
+    await sleep(300);
+    await sendCmd('ATS0\\r');
+    await sleep(300);
+    await sendCmd('ATH0\\r');
+    await sleep(300);
+    await sendCmd('ATSP0\\r');
+    await sleep(500);
+    log('✅ ELM327 inicializado');
+    log('🚗 Iniciando lectura de datos...');
+    startRead();
+}
+async function sendCmd(c){
+    if(!window.btTx)return;
+    try{
+        let d=new TextEncoder().encode(c);
+        await window.btTx.writeValue(d);
+        log('TX: '+c.trim());
+    }catch(e){
+        log('Error TX: '+e.message);
+    }
+}
+function handleData(ev){
+    let v=new TextDecoder().decode(ev.target.value);
+    if(v.trim()){
+        log('RX: '+v.trim());
+        parseData(v);
+    }
+}
+function parseData(d){
+    let c=d.replace(/\\s+/g,'').toUpperCase();
+    if(c.includes('410C')){
+        let b=c.match(/410C([0-9A-F]{4})/);
+        if(b){
+            s.data.rpm=parseInt(b[1],16)/4;
+            log('RPM: '+Math.floor(s.data.rpm));
+        }
+    }
+    if(c.includes('4105')){
+        let b=c.match(/4105([0-9A-F]{2})/);
+        if(b){
+            s.data.temp=parseInt(b[1],16)-40;
+            log('TEMP: '+Math.floor(s.data.temp)+'°C');
+        }
+    }
+    if(c.includes('4110')){
+        let b=c.match(/4110([0-9A-F]{4})/);
+        if(b){
+            s.data.maf=parseInt(b[1],16)/100;
+            log('MAF: '+s.data.maf.toFixed(1)+'g/s');
+        }
+    }
+    if(c.includes('410B')){
+        let b=c.match(/410B([0-9A-F]{2})/);
+        if(b){
+            s.data.map=parseInt(b[1],16);
+            log('MAP: '+s.data.map+'kPa');
+        }
+    }
+    if(c.includes('4111')){
+        let b=c.match(/4111([0-9A-F]{2})/);
+        if(b){
+            s.data.tps=(parseInt(b[1],16)*100)/255;
+        }
+    }
+    if(c.includes('V')){
+        let v=c.match(/([0-9.]+)V/);
+        if(v){
+            s.data.volt=parseFloat(v[1]);
+            log('VOLT: '+s.data.volt.toFixed(1)+'V');
+        }
+    }
+    update();
+}
+function startRead(){
+    window.readIv=setInterval(async()=>{
+        if(!s.bt||!window.btTx)return;
+        await sendCmd('010C\\r');
+        await sleep(150);
+        await sendCmd('0105\\r');
+        await sleep(150);
+        await sendCmd('0110\\r');
+        await sleep(150);
+        await sendCmd('010B\\r');
+        await sleep(150);
+        await sendCmd('0111\\r');
+        await sleep(150);
+        await sendCmd('ATRV\\r');
+        await sleep(150);
+    },2000);
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function disconnectBT(){
+    s.bt=false;
+    if(window.iv)clearInterval(window.iv);
+    if(window.readIv)clearInterval(window.readIv);
+    if(window.btDevice&&window.btDevice.gatt.connected){
+        window.btDevice.gatt.disconnect();
+        console.log('📴 Desconectado');
+    }
+    window.btTx=null;
+    window.btRx=null;
+    updateUI(false);
+    s.data={rpm:0,temp:0,maf:0,map:0,tps:0,volt:0,inj1:0,inj2:0,inj3:0,inj4:0,coil1:0,coil2:0,coil3:0,coil4:0,rail:0,egr:0};
+    update();
+}
 function sim(){s.bt=true;updateUI(true);window.iv=setInterval(()=>{s.data={rpm:750+Math.random()*200,temp:88+Math.random()*8,maf:2+Math.random()*4,map:30+Math.random()*15,tps:Math.random()*10,volt:13.9+Math.random()*.4,inj1:2.2+Math.random()*1.5,inj2:2.2+Math.random()*1.5,inj3:2.2+Math.random()*1.5,inj4:2.2+Math.random()*1.5,coil1:Math.random()>.3,coil2:Math.random()>.3,coil3:Math.random()>.3,coil4:Math.random()>.3,rail:250+Math.random()*100,egr:Math.random()*50};update()},1e3)}
 function updateUI(c){let st=document.getElementById('conn-status'),bt=document.getElementById('btn-connect'),ic=document.getElementById('bt-status');c?(st.textContent='CONECTADO',st.className='text-[9px] px-3 py-1 rounded-full bg-green-900 text-green-200 font-bold',bt.innerHTML='<i class="fas fa-plug-circle-xmark mr-2"></i>DESCONECTAR',bt.className='w-full bg-gradient-to-r from-red-600 to-pink-500 py-3 rounded-lg font-bold text-xs',ic.className='text-cyan-400'):(st.textContent='DESCONECTADO',st.className='text-[9px] px-3 py-1 rounded-full bg-red-900 text-red-200 font-bold',bt.innerHTML='<i class="fab fa-bluetooth mr-2"></i>CONECTAR BLUETOOTH',bt.className='w-full bg-gradient-to-r from-blue-600 to-cyan-500 py-3 rounded-lg font-bold text-xs glow',ic.className='text-gray-500')}
 function update(){document.getElementById('val-rpm').textContent=Math.floor(s.data.rpm);document.getElementById('val-temp').textContent=Math.floor(s.data.temp)+'°C';document.getElementById('val-maf').textContent=s.data.maf.toFixed(1);document.getElementById('val-map').textContent=Math.floor(s.data.map);document.getElementById('val-tps').textContent=Math.floor(s.data.tps)+'%';document.getElementById('val-volt').textContent=s.data.volt.toFixed(1)+'V';document.getElementById('val-rail').textContent=Math.floor(s.data.rail)+' bar';document.getElementById('val-egr').textContent=Math.floor(s.data.egr)+'%';for(let i=1;i<=4;i++){let ms=s.data['inj'+i].toFixed(2),w=(ms/8)*100;document.getElementById('inj-'+i).textContent=ms+' ms';document.getElementById('bar-'+i).style.width=w+'%';let c=document.getElementById('coil-'+i),a=s.data['coil'+i];c.querySelector('div:last-child').style.color=a?'#22c55e':'#6b7280';c.style.background=a?'rgba(34,197,94,.3)':'rgba(107,114,128,.1)'}}
