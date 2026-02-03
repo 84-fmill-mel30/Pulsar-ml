@@ -161,8 +161,7 @@
                 <i class="fas fa-microchip text-green-400 text-2xl mr-3"></i><span class="text-white font-bold">BOSCH ME7.5 (121)</span>
             </div>
             <div class="glass p-4 rounded-xl border border-green-500/30">
-                <i class="fas fa-microchip text-green-400 text-2xl mr-3"></i><span class="text-white font-bold">NISSAN ECCS (76)</span>
-            </div>
+                <i class="fas fa-microchip text-green-400 text-2xl mr-3"></i><span class="text-white font-bold">NISSAN ECCS (76)</span>            </div>
         </div>
         <div id="view-inventory" class="hidden">
             <h2 class="text-cyan-400 font-bold text-lg mb-4">REFACCIONES</h2>
@@ -187,66 +186,7 @@
         <button onclick="sendWA()" class="w-full bg-green-600 py-4 rounded-xl font-bold mt-4">💬 WHATSAPP</button>
     </div>
     <script>
-Gemini
 
-Archivo Incorrecto: Asistencia de TI
-Conversación con Gemini
-Pero en la imagen no ?
-
-julss
-Gem personalizada
-¡Tienes razón, carnal! Me refiero a que yo te voy a generar la imagen nueva aquí mismo, pero necesito que me "alimentes" la caja mágica.
-
-Como soy una IA, no puedo "colorear" encima de tu foto vieja como si fuera un plumón, lo que hago es que analizo tu foto y dibujo una versión nueva, limpia y a color para que la veas clarita.
-
-🛠️ Hagamos el jale ahorita mismo:
-Sube la foto aquí: Dale al icono de la cámara o al clip y mándame ese diagrama que tienes en blanco y negro.
-
-Dime el modelo: Confírmame si es la Golf 4 (Motor 2.0) o qué diagrama es el que tienes en la mano.
-
-Yo saco el "Refresco": En cuanto la vea, te voy a generar una imagen técnica como esta (pero con tus datos reales):
-
-🏁 ¿Por qué es mejor así?
-Sin manchas: Te quito la grasa y lo borroso de la foto original.
-
-Español: Cambio el "Zündung" o "Ignition" por "IGNICIÓN / SWITCH".
-
-Colores de taller: Uso el código de colores universal (Rojo=Corriente, Café=Tierra, Verde=Señal).
-
-¡Échame la foto, socio! No le saques, mándala así como esté de fea y yo me encargo de que parezca de manual de agencia. ¿Qué diagrama tienes ahí a la mano? 👊😎🔥
-
-julss
-Gem personalizada
-Imagen de 
-
-Se podrás aclarar más carnal
-
-julss
-Gem personalizada
-Imagen de 
-
-Solo me marcas soporte avanzado dtc y me dirige w mi what app
-
-julss
-Gem personalizada
-¡Qué onda carnal! Ya vi el problema: el código está haciendo su jale de "seguridad", pero como no tiene cargados los miles de códigos que existen, se salta directo al WhatsApp. Para un taller de verdad, necesitamos que la base de datos sea masiva.
-
-Aquí tienes el diagrama refrescado, aclarado y a color de lo que me mandaste (Inyectores y Bobinas de Golf/Jetta). Además, te corregí el código para que el buscador sea mucho más inteligente y no te mande a WhatsApp a la primera.
-
-🔌 Diagrama Refrescado (Inyectores y Bobinas)
-En la imagen que mandaste (No. 86/5), esto es lo que realmente estás viendo en colores de taller:
-
-Línea Roja/Negra: Es la alimentación de +12V que viene del relevador de la bomba. Si no hay corriente aquí, los inyectores no abren.
-
-Líneas Verde/Blanco, Gris/Blanco (Pins ECU): Son los pulsos de tierra que manda la ECU para activar cada inyector.
-
-Línea Café: Es la tierra física de las bobinas. Si el cable está tostado, la chispa será débil.
-
-🛠️ CÓDIGO ACTUALIZADO (Buscador "Anti-WhatsApp")
-Copia esta parte en tu index.html para que el buscador tenga más "colmillo" y solo te mande a soporte si de verdad es algo muy raro:
-
-JavaScript
-const dataMaster = {
     // MOTOR & COMBUSTIÓN
     "P0300": "MISFIRE ALEATORIO: Bobinas, bujías o presión de gasolina baja (45 PSI).",
     "P0301": "FALLA CILINDRO 1: Intercambia bobina 1 con 2. Si falla sigue en 1, checa pulso de inyector.",
@@ -258,30 +198,7 @@ const dataMaster = {
     "P1542": "POTENCIÓMETRO MARIPOSA: Revisa cableado del cuerpo. Voltaje ideal en reposo: 0.5V.",
     
     // INMOVILIZADOR & DIESEL
-    "P1610": "BLOQUEO INMO (NISSAN): Deja switch abierto 5 seg, cierra y abre. Requiere PIN Code.",
-    "P2002": "FILTRO DPF (DIESEL): Requiere regeneración forzada. Revisa sensor de presión diferencial.",
-    
-    // TRANSMISIÓN
-    "P0700": "FALLA EN TCM: El módulo de transmisión pide revisión. Checa conector de caja."
-};
-
-function buscarFull() {
-    const c = document.getElementById('dtcInput').value.toUpperCase().trim();
-    const resDisplay = document.getElementById('resBox');
-    
-    if(dataMaster[c]) {
-        resDisplay.style.display = 'block';
-        document.getElementById('rNom').innerText = "CÓDIGO " + c;
-        document.getElementById('rDef').innerText = "Diagnóstico detectado.";
-        document.getElementById('rSol').innerText = dataMaster[c];
-        resDisplay.scrollIntoView({ behavior: 'smooth' });
-    } else if (c !== "") {
-        // Solo si no existe en la lista, te manda conmigo
-        if(confirm("Código no está en base de datos local. ¿Consultar a Julss AI por WhatsApp?")) {
-            window.location.href = "https://wa.me/527776838196?text=Socio, soporte avanzado para el codigo: " + c;
-        }
-    }
-}
+    "P1610": "BLOQUEO INMO (NISSAN): Deja switch abierto 5 seg, cierra y
 🏁 ¿Cómo usar el diagrama aclarado?
 Voltaje: Con el switch en ON, busca los 12V en el cable rojo de los inyectores.
 
@@ -358,43 +275,6 @@ HTML
             </div>
         </div>
     </div>
-
-    <div id="data" class="screen">
-        <h3 style="color:var(--blue); font-family:'Orbitron';">GOLF/JETTA DATA</h3>
-        <div class="card">
-            <b style="color:var(--red);">INYECTORES (Diag. 86/5):</b><br>
-            <span style="font-size: 0.8rem;">
-                • Alimentación: Cable Rojo/Negro (+12V Relé Bomba)<br>
-                • Señal ECU: Pulsos de Tierra (Cables de colores)<br>
-                • Resistencia Ideal: 12.0 - 16.0 Ω
-            </span>
-        </div>
-        
-        <div class="card" style="border-left-color: var(--blue);">
-            <b style="color:var(--blue);">CUERPO ACEL. (Diag. 86/4):</b><br>
-            <span style="font-size: 0.8rem;">
-                • Pin 1 y 2: Motor de Mariposa (Control PWM)<br>
-                • Pin 4 y 6: Potenciómetros (Señal 0.5V a 4.5V)<br>
-                • Ajuste: Canal 060 (VAG-COM)
-            </span>
-        </div>
-    </div>
-
-    <div id="auditor" class="screen">
-        <h3 style="color:var(--gold); font-family:'Orbitron';">✨ CAJA MÁGICA</h3>
-        <div class="card" style="border-left-color: var(--gold); text-align: center;">
-            <video id="webcam" autoplay playsinline></video>
-            <button class="btn" id="btnCam" onclick="toggleCam()" style="background:var(--red);">📷 CÁMARA INSPECCIÓN</button>
-            <button class="btn" onclick="irWhatsApp('Diagrama')" style="background:var(--gold); color:#000; margin-top:20px;">📸 REFRESCAR DIAGRAMA (IA)</button>
-        </div>
-    </div>
-
-    <nav class="nav">
-        <div class="nav-item active" onclick="tab('scan', this)">SCANNER</div>
-        <div class="nav-item" onclick="tab('data', this)">GOLF DATA</div>
-        <div class="nav-item" onclick="tab('auditor', this)">AUDITOR</div>
-        <div class="nav-item" onclick="irWhatsApp()">SOPORTE</div>
-    </nav>
 
     <script>
         function tab(id, el) {
@@ -783,27 +663,6 @@ HTML
         </div>
     </div>
 
-    <div id="data" class="screen">
-        <h3 style="color:var(--blue); font-family:'Orbitron';">GOLF DATA (PINOUTS)</h3>
-        <div class="card">
-            <b style="color:var(--red);">INYECTORES:</b><br>
-            • Rojo/Negro: +12V Constante<br>
-            • Otros colores: Pulsos de Tierra (ECU)<br>
-            • Resistencia: 12-16 Ohms
-        </div>
-        <div class="card" style="border-left-color: var(--gold);">
-            <b style="color:var(--gold);">ECU PINS:</b><br>
-            • Pin 1-2: Masa (-) | Pin 3: +12V Bat<br>
-            • Pin 62: +12V Ign | Pin 43: K-Line
-        </div>
-    </div>
-
-    <nav class="nav">
-        <div class="nav-item active" onclick="tab('scan', this)">SCANNER</div>
-        <div class="nav-item" onclick="tab('data', this)">GOLF DATA</div>
-        <div class="nav-item" onclick="window.location.href='https://wa.me/527776838196'">SOPORTE AI</div>
-    </nav>
-
     <script>
         function tab(id, el) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -825,47 +684,6 @@ HTML
                 document.getElementById('mainStatus').style.color = "var(--green)";
             } catch (err) { alert("Activa Bluetooth y GPS, carnal."); }
         }
-
-        function leerECU() {
-            const bar = document.getElementById('bar');
-            const cont = document.getElementById('scanProgress');
-            const text = document.getElementById('scanText');
-            cont.style.display = 'block';
-            text.style.display = 'block';
-            
-            let p = 0;
-            let interval = setInterval(() => {
-                p += 2;
-                bar.style.width = p + "%";
-                if(p == 30) text.innerText = "Accediendo a Memoria de Averías...";
-                if(p == 60) text.innerText = "Buscando códigos intermitentes...";
-                if(p == 90) text.innerText = "Finalizando reporte..."; s={view:'home',tab:'live',bt:false,cart:[],data:{rpm:0,temp:0,maf:0,map:0,tps:0,volt:0,inj1:0,inj2:0,inj3:0,inj4:0,coil1:0,coil2:0,coil3:0,coil4:0,rail:0,egr:0}};
-function showView(v){document.querySelectorAll('[id^="view-"]').forEach(e=>e.classList.add('hidden'));let e=document.getElementById('view-'+v);e&&(e.classList.remove('hidden'),s.view=v)}
-function switchTab(t){document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));event.target.classList.add('active');document.querySelectorAll('[id^="tab-"]').forEach(e=>e.classList.add('hidden'));let e=document.getElementById('tab-'+t);e&&(e.classList.remove('hidden'),s.tab=t)}
-async function toggleBT(){s.bt?disconnectBT():await connectBT()}
-async function connectBT(){
-    if(!navigator.bluetooth){
-        alert('⚠️ BLUETOOTH WEB NO SOPORTADO\\n\\nREQUISITOS:\\n✓ Chrome en Android\\n✓ Edge en Windows\\n\\nPASOS:\\n1. Emparejar ELM327 en Ajustes Bluetooth\\n2. Abrir esta app en Chrome\\n3. Intentar conexión');
-        sim();
-        return;
-    }
-    try{
-        console.log('🔍 Buscando ELM327...');
-        let d=await navigator.bluetooth.requestDevice({
-            filters:[
-                {namePrefix:'OBDII'},
-                {namePrefix:'OBD'},
-                {namePrefix:'ELM327'},
-                {namePrefix:'ELM'},
-                {namePrefix:'V-LINK'},
-                {namePrefix:'Vgate'},
-                {namePrefix:'CHX'},
-                {namePrefix:'KONNWEI'},
-                {namePrefix:'VEEPEAK'}
-            ],
-            optionalServices:[
-                '0000fff0-0000-1000-8000-00805f9b34fb',
-                '00001101-0000-1000-8000-00805f9b34fb'
             ]
         });
         console.log('✓ Dispositivo:',d.name);
