@@ -203,9 +203,95 @@
                 <h3 class="text-white font-bold text-xs"><i class="fas fa-wifi text-cyan-400 mr-2"></i>ELM327 OBD2</h3>
                 <span id="conn-status" class="text-[9px] px-3 py-1 rounded-full bg-red-900 text-red-200 font-bold">DESCONECTADO</span>
             </div>
-            <button onclick="toggleBluetooth()" id="btn-connect" class="w-full bg-gradient-to-r from-blue-600 to-cyan-500 py-3 rounded-lg font-bold text-xs glow">
-                <i class="fab fa-bluetooth mr-2"></i>CONECTAR BLUETOOTH
-            </button>
+            // Botón de conexión Bluetooth
+const btnConectar = document.querySelector('.btn-bluetooth'); // Ajusta el selector según tu código
+
+btnConectar.addEventListener('click', async function() {
+    try {
+        // Solicitar dispositivo Bluetooth (ELM327)
+        const device = await navigator.bluetooth.requestDevice({
+            filters: [
+                { namePrefix: 'OBD' },
+                { namePrefix: 'ELM' },
+                { namePrefix: 'OBDII' }
+            ],
+            optionalServices: ['0000fff0-0000-1000-8000-00805f9b34fb'] // Servicio OBD-II estándar
+        });
+
+        console.log('Dispositivo encontrado:', device.name);
+        
+        // Conectar al servidor GATT
+        const server = await device.gatt.connect();
+        console.log('Conectado a GATT server');
+        
+        // Actualizar UI
+        document.querySelector('.elm-status').textContent = 'CONECTADO';
+        document.querySelector('.elm-status').style.color = '#00ff00';
+        btnConectar.textContent = 'DESCONECTAR';
+        
+        // Obtener servicio y característica
+        const service = await server.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
+        const characteristic = await service.getCharacteristic('0000fff2-0000-1000-8000-00805f9b34fb');
+        
+        // Aquí puedes empezar a enviar comandos OBD-II
+        // Ejemplo: leer RPM
+        await iniciarLecturaOBD(characteristic);
+        
+    } catch (error) {
+        console.error('Error de conexión Bluetooth:', error);
+        
+        if (error.name === 'NotFoundError') {
+            alert('No se encontró ningún dispositivo ELM327. Asegúrate de que esté encendido y cerca.');
+        } else if (error.name === 'SecurityError' || error.name === 'NotAllowedError') {
+            alert('Permiso denegado. Verifica que el sitio tenga permisos de Bluetooth habilitados.');
+        } else {
+            alert('Error al conectar: ' + error.message);
+        }
+    }
+});
+
+// Función para leer datos OBD-II
+async function iniciarLecturaOBD(characteristic) {
+    // Comandos OBD-II básicos
+    const comandos = {
+        rpm: '010C\r',      // RPM
+        temp: '0105\r',     // Temperatura
+        maf: '0110\r',      // MAF
+        throttle: '0111\r', // TPS
+        voltage: '0142\r'   // Voltaje
+    };
+    
+    // Ejemplo: Leer RPM cada segundo
+    setInterval(async () => {
+        try {
+            const encoder = new TextEncoder();
+            await characteristic.writeValue(encoder.encode(comandos.rpm));
+            
+            // Leer respuesta
+            const value = await characteristic.readValue();
+            const decoder = new TextDecoder();
+            const respuesta = decoder.decode(value);
+            
+            // Procesar respuesta y actualizar UI
+            const rpm = procesarRPM(respuesta);
+            document.querySelector('.rpm-value').textContent = rpm;
+        } catch (error) {
+            console.error('Error leyendo RPM:', error);
+        }
+    }, 1000);
+}
+
+function procesarRPM(respuesta) {
+    // Procesar respuesta del ELM327
+    // Formato típico: "41 0C XX XX"
+    const bytes = respuesta.match(/[0-9A-F]{2}/g);
+    if (bytes && bytes.length >= 4) {
+        const a = parseInt(bytes[2], 16);
+        const b = parseInt(bytes[3], 16);
+        return Math.floor(((a * 256) + b) / 4);
+    }
+    return 0;
+}
         </div>
         <div id="tab-live"><div class="grid grid-cols-2 gap-3">
             <div class="card-sensor rounded-lg p-3"><div class="text-[10px] text-cyan-400 font-bold mb-1">RPM</div><div id="rpm" class="data-display text-white">0</div><div class="text-[9px] text-gray-400">Motor</div></div>
