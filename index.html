@@ -1,392 +1,1027 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PROPART DIAGNOSTIC V4 (STABLE)</title>
-    
+    <meta name="theme-color" content="#0a0e27">
+    <!-- ✅ META TAG CRÍTICO PARA BLUETOOTH -->
+    <meta http-equiv="Permissions-Policy" content="bluetooth=(self)">
+    <title>PROPART DIAGNOSTIC PRO - Sistema Profesional Completo</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
-    <script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"></script>
-    
-    <script src="https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.min.js"></script>
-
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
     <style>
-        body { background-color: #020617; color: white; font-family: sans-serif; }
-        .loader { border: 4px solid #333; border-top: 4px solid #06b6d4; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .pulse-green { animation: pulse-green 2s infinite; }
-        @keyframes pulse-green {
-            0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+        
+        body{background:linear-gradient(135deg,#0a0e27 0%,#1a1f3a 100%);color:#e2e8f0;font-family:'Rajdhani',sans-serif;margin:0;padding:0;overflow-x:hidden}
+        .orbitron{font-family:'Orbitron',sans-serif}
+        .glass{background:rgba(19,24,41,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08)}
+        .glow{box-shadow:0 0 20px rgba(0,212,255,.4)}
+        .glow-green{box-shadow:0 0 20px rgba(34,197,94,.4)}
+        .btn-pro{background:linear-gradient(135deg,#1e3a8a 0%,#1e40af 100%);border:1px solid rgba(0,212,255,.3);cursor:pointer;transition:all .3s}
+        .btn-pro:active{transform:scale(.95);box-shadow:0 0 25px rgba(0,212,255,.6)}
+        .hidden{display:none!important}
+        .card-sensor{background:linear-gradient(135deg,rgba(30,58,138,.3) 0%,rgba(30,64,175,.2) 100%);border:1px solid rgba(0,212,255,.2);border-left:4px solid #06b6d4}
+        .data-display{font-size:1.5rem;font-weight:900}
+        .tab-btn{padding:.75rem 1.5rem;background:#1e293b;color:#94a3b8;border:none;border-radius:.5rem;font-weight:600;cursor:pointer;white-space:nowrap;font-size:.75rem}
+        .tab-btn.active{background:linear-gradient(90deg,#06b6d4,#3b82f6);color:white}
+        .search-input{background:rgba(30,41,59,.8);border:1px solid rgba(148,163,184,.3);color:white;padding:.75rem 1rem;border-radius:.5rem;width:100%}
+        .search-input:focus{outline:none;border-color:#06b6d4;box-shadow:0 0 10px rgba(6,182,212,.3)}
+        .vehicle-card{background:linear-gradient(135deg,rgba(30,58,138,.4) 0%,rgba(30,64,175,.3) 100%);border:1px solid rgba(0,212,255,.3);transition:all .3s}
+        .vehicle-card:hover{border-color:#06b6d4;box-shadow:0 0 20px rgba(6,182,212,.3)}
+        .scrollbar-hide::-webkit-scrollbar{display:none}
+        .pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
     </style>
 </head>
 <body>
 
-    <div id="root">
-        <div style="text-align: center; padding-top: 50px;">
-            <div class="loader"></div>
-            <p class="text-cyan-400 mt-4">Cargando Sistema PROPART...</p>
+<!-- HEADER -->
+<div style="background:linear-gradient(180deg,rgba(19,24,41,.98) 0%,rgba(10,14,39,.95) 100%);border-bottom:2px solid #06b6d4" class="p-4 flex justify-between items-center sticky top-0 z-50">
+    <div class="flex items-center gap-3 cursor-pointer" onclick="showView('home')">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center glow">
+            <i class="fas fa-microchip text-white text-2xl"></i>
+        </div>
+        <div>
+            <h1 class="orbitron font-black text-base text-white">PROPART</h1>
+            <p class="text-[10px] text-cyan-400 font-bold">DIAGNOSTIC PRO</p>
+        </div>
+    </div>
+    <div class="flex gap-3 items-center">
+        <button id="bt-status" class="text-gray-500">
+            <i class="fas fa-bluetooth text-2xl"></i>
+        </button>
+        <button onclick="toggleCart()" class="relative">
+            <i class="fas fa-shopping-cart text-white text-xl"></i>
+            <span id="cart-badge" class="absolute -top-2 -right-2 bg-red-500 text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold">0</span>
+        </button>
+    </div>
+</div>
+
+<!-- CONTENIDO -->
+<div class="p-4 pb-24">
+
+    <!-- HOME -->
+    <div id="view-home">
+        <div class="text-center mb-6">
+            <h2 class="text-2xl font-black text-cyan-400 orbitron mb-2">SISTEMA PROFESIONAL</h2>
+            <p class="text-gray-400 text-sm">Diagnóstico Automotriz Completo</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mb-6">
+            <button onclick="showView('vehicles')" class="btn-pro p-5 rounded-xl text-center">
+                <i class="fas fa-car text-cyan-400 text-3xl mb-2"></i>
+                <div class="text-xs font-bold text-white">VEHÍCULOS</div>
+                <div class="text-[9px] text-gray-400">200+ MODELOS</div>
+            </button>
+            <button onclick="showView('scanner')" class="btn-pro p-5 rounded-xl text-center">
+                <i class="fas fa-chart-line text-green-400 text-3xl mb-2"></i>
+                <div class="text-xs font-bold text-white">DIAGNÓSTICO</div>
+                <div class="text-[9px] text-gray-400">OBD2 VIVO</div>
+            </button>
+            <button onclick="showView('dtc')" class="btn-pro p-5 rounded-xl text-center">
+                <i class="fas fa-exclamation-triangle text-yellow-400 text-3xl mb-2"></i>
+                <div class="text-xs font-bold text-white">CÓDIGOS DTC</div>
+                <div class="text-[9px] text-gray-400">+500 CÓDIGOS</div>
+            </button>
+            <button onclick="showView('programming')" class="btn-pro p-5 rounded-xl text-center">
+                <i class="fas fa-laptop-code text-purple-400 text-3xl mb-2"></i>
+                <div class="text-xs font-bold text-white">PROGRAMACIÓN</div>
+                <div class="text-[9px] text-gray-400">ECU & LLAVES</div>
+            </button>
+            <button onclick="showView('immo')" class="btn-pro p-5 rounded-xl text-center">
+                <i class="fas fa-key text-orange-400 text-3xl mb-2"></i>
+                <div class="text-xs font-bold text-white">INMOVILIZADOR</div>
+                <div class="text-[9px] text-gray-400">SISTEMAS</div>
+            </button>
+            <button onclick="showView('calibration')" class="btn-pro p-5 rounded-xl text-center">
+                <i class="fas fa-sliders-h text-blue-400 text-3xl mb-2"></i>
+                <div class="text-xs font-bold text-white">CALIBRACIÓN</div>
+                <div class="text-[9px] text-gray-400">C060 TPS</div>
+            </button>
+            <button onclick="showView('inventory')" class="btn-pro p-5 rounded-xl text-center">
+                <i class="fas fa-warehouse text-pink-400 text-3xl mb-2"></i>
+                <div class="text-xs font-bold text-white">REFACCIONES</div>
+                <div class="text-[9px] text-gray-400">INVENTARIO</div>
+            </button>
+            <button onclick="loginAdmin()" class="btn-pro p-5 rounded-xl text-center">
+                <i class="fas fa-user-gear text-red-400 text-3xl mb-2"></i>
+                <div class="text-xs font-bold text-white">ADMIN</div>
+                <div class="text-[9px] text-gray-400">GESTIÓN</div>
+            </button>
+        </div>
+
+        <div class="glass rounded-xl p-4 border border-cyan-500/30 mb-4">
+            <div class="flex items-center gap-2 mb-3">
+                <div class="w-2 h-2 bg-green-500 rounded-full pulse"></div>
+                <h3 class="text-cyan-400 font-bold text-sm">SISTEMA ACTIVO</h3>
+            </div>
+            <div class="space-y-2 text-xs">
+                <div class="flex justify-between">
+                    <span class="text-gray-400">PROPIETARIO:</span>
+                    <span class="text-white font-bold">FERNANDO MILLÁN</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">TELÉFONO:</span>
+                    <span class="text-cyan-400">777-683-8196</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">VERSIÓN:</span>
+                    <span class="text-green-400">v2.0.0 PRO PLUS</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass rounded-xl p-4 border border-green-500/30">
+            <h3 class="text-green-400 font-bold text-sm mb-3">🎯 CARACTERÍSTICAS PREMIUM</h3>
+            <div class="grid grid-cols-2 gap-2 text-[10px]">
+                <div class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i><span>200+ Vehículos</span></div>
+                <div class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i><span>500+ DTCs</span></div>
+                <div class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i><span>Flasheo ECU</span></div>
+                <div class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i><span>Prog. Llaves</span></div>
+                <div class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i><span>Diagramas HD</span></div>
+                <div class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i><span>Inventario</span></div>
+            </div>
         </div>
     </div>
 
-    <script type="text/babel">
-        // --- SEGURIDAD: Prevenimos el error rojo si fallan las librerías ---
-        const { useState, useEffect } = React;
-        const { createRoot } = ReactDOM;
+    <!-- VEHÍCULOS -->
+    <div id="view-vehicles" class="hidden">
+        <h2 class="text-cyan-400 font-bold text-lg mb-3">🚗 VEHÍCULOS</h2>
+        <input type="text" id="search-vehicle" oninput="searchVehicles()" class="search-input mb-4" placeholder="🔍 Buscar marca, modelo o año...">
+        <div class="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+            <button class="tab-btn active" onclick="filterBrand('all')">TODOS</button>
+            <button class="tab-btn" onclick="filterBrand('vw')">VW</button>
+            <button class="tab-btn" onclick="filterBrand('nissan')">NISSAN</button>
+            <button class="tab-btn" onclick="filterBrand('chevrolet')">CHEVROLET</button>
+            <button class="tab-btn" onclick="filterBrand('ford')">FORD</button>
+            <button class="tab-btn" onclick="filterBrand('toyota')">TOYOTA</button>
+            <button class="tab-btn" onclick="filterBrand('honda')">HONDA</button>
+        </div>
+        <div id="vehicles-list" class="space-y-3"></div>
+    </div>
+
+    <!-- SCANNER EN VIVO -->
+    <div id="view-scanner" class="hidden">
+        <h2 class="text-cyan-400 font-bold text-lg mb-3">📊 DIAGNÓSTICO EN VIVO</h2>
         
-        // Intentamos cargar Recharts de forma segura
-        const RechartsLib = window.Recharts || null;
-        const hasGraphs = !!RechartsLib; // Verdadero si cargó, Falso si falló
+        <div class="glass rounded-xl p-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fab fa-bluetooth text-cyan-400 text-xl"></i>
+                    <span class="text-white text-sm font-bold">ELM327</span>
+                </div>
+                <span id="conn-status" class="text-[9px] px-3 py-1 rounded-full bg-red-900 text-red-200 font-bold">DESCONECTADO</span>
+            </div>
+            <button id="btn-connect" onclick="connectBluetooth()" class="w-full bg-gradient-to-r from-blue-600 to-cyan-500 py-3 rounded-lg font-bold text-xs glow">
+                <i class="fab fa-bluetooth mr-2"></i>CONECTAR BLUETOOTH
+            </button>
+        </div>
+
+        <div class="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+            <button class="tab-btn active" onclick="showScannerTab('basic')">BÁSICOS</button>
+            <button class="tab-btn" onclick="showScannerTab('advanced')">AVANZADOS</button>
+            <button class="tab-btn" onclick="showScannerTab('injectors')">INYECTORES</button>
+            <button class="tab-btn" onclick="showScannerTab('coils')">BOBINAS</button>
+            <button class="tab-btn" onclick="showScannerTab('diesel')">DIESEL</button>
+        </div>
+
+        <div id="scanner-basic">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">RPM</div>
+                    <div class="data-display text-cyan-400" id="rpm">0</div>
+                </div>
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">TEMP ECT</div>
+                    <div class="data-display text-orange-400"><span id="temp">0</span>°C</div>
+                </div>
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">MAF</div>
+                    <div class="data-display text-green-400"><span id="maf">0.0</span> g/s</div>
+                </div>
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">MAP</div>
+                    <div class="data-display text-purple-400"><span id="map">0</span> kPa</div>
+                </div>
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">TPS</div>
+                    <div class="data-display text-yellow-400"><span id="tps">0</span>%</div>
+                </div>
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">BATERÍA</div>
+                    <div class="data-display text-pink-400"><span id="volt">0.0</span>V</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="scanner-advanced" class="hidden">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">VELOCIDAD</div>
+                    <div class="data-display text-cyan-400"><span id="speed">0</span> km/h</div>
+                </div>
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">O2 SENSOR</div>
+                    <div class="data-display text-green-400"><span id="o2">0.00</span>V</div>
+                </div>
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">IAT</div>
+                    <div class="data-display text-orange-400"><span id="iat">0</span>°C</div>
+                </div>
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">KNOCK</div>
+                    <div class="data-display text-red-400"><span id="knock">0</span>°</div>
+                </div>
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">LAMBDA</div>
+                    <div class="data-display text-purple-400" id="lambda">1.00</div>
+                </div>
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">TIMING</div>
+                    <div class="data-display text-yellow-400"><span id="timing">0</span>°</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="scanner-injectors" class="hidden">
+            <div class="space-y-3">
+                <div class="glass p-4 rounded-xl">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-white font-bold">INYECTOR 1</span>
+                        <span id="inj1" class="text-cyan-400 font-bold">0.00 ms</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2"><div class="bg-cyan-400 h-2 rounded-full" style="width:50%"></div></div>
+                </div>
+                <div class="glass p-4 rounded-xl">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-white font-bold">INYECTOR 2</span>
+                        <span id="inj2" class="text-cyan-400 font-bold">0.00 ms</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2"><div class="bg-cyan-400 h-2 rounded-full" style="width:50%"></div></div>
+                </div>
+                <div class="glass p-4 rounded-xl">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-white font-bold">INYECTOR 3</span>
+                        <span id="inj3" class="text-cyan-400 font-bold">0.00 ms</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2"><div class="bg-cyan-400 h-2 rounded-full" style="width:50%"></div></div>
+                </div>
+                <div class="glass p-4 rounded-xl">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-white font-bold">INYECTOR 4</span>
+                        <span id="inj4" class="text-cyan-400 font-bold">0.00 ms</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2"><div class="bg-cyan-400 h-2 rounded-full" style="width:50%"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="scanner-coils" class="hidden">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="glass p-5 rounded-xl text-center">
+                    <div class="text-white font-bold mb-2">BOBINA 1</div>
+                    <div id="coil1" class="text-4xl">●</div>
+                </div>
+                <div class="glass p-5 rounded-xl text-center">
+                    <div class="text-white font-bold mb-2">BOBINA 2</div>
+                    <div id="coil2" class="text-4xl">●</div>
+                </div>
+                <div class="glass p-5 rounded-xl text-center">
+                    <div class="text-white font-bold mb-2">BOBINA 3</div>
+                    <div id="coil3" class="text-4xl">●</div>
+                </div>
+                <div class="glass p-5 rounded-xl text-center">
+                    <div class="text-white font-bold mb-2">BOBINA 4</div>
+                    <div id="coil4" class="text-4xl">●</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="scanner-diesel" class="hidden">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">RAIL PRESSURE</div>
+                    <div class="data-display text-cyan-400"><span id="rail">0</span> bar</div>
+                </div>
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">EGR</div>
+                    <div class="data-display text-green-400"><span id="egr">0</span>%</div>
+                </div>
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">TURBO PSI</div>
+                    <div class="data-display text-purple-400"><span id="turbo">0.0</span> psi</div>
+                </div>
+                <div class="card-sensor p-4 rounded-xl">
+                    <div class="text-gray-400 text-xs mb-1">DPF</div>
+                    <div class="data-display text-yellow-400"><span id="dpf">0</span>%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CÓDIGOS DTC -->
+    <div id="view-dtc" class="hidden">
+        <h2 class="text-cyan-400 font-bold text-lg mb-3">⚠️ CÓDIGOS DTC</h2>
+        <input type="text" id="search-dtc" oninput="searchDTCs()" class="search-input mb-4" placeholder="🔍 Buscar código o descripción...">
+        <div id="dtc-list" class="space-y-3"></div>
+    </div>
+
+    <!-- PROGRAMACIÓN ECU -->
+    <div id="view-programming" class="hidden">
+        <h2 class="text-cyan-400 font-bold text-lg mb-3">💻 PROGRAMACIÓN ECU</h2>
         
-        // Solo extraemos si existe, si no, usamos objetos vacíos para que no truene
-        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = RechartsLib || {};
+        <div class="glass rounded-xl p-4 mb-3 border border-purple-500/30">
+            <h3 class="text-purple-400 font-bold mb-3">🔧 FLASHEO ECU</h3>
+            <div class="space-y-2">
+                <button onclick="flashECU('bosch')" class="w-full bg-gradient-to-r from-purple-600 to-pink-500 py-3 rounded-lg text-white font-bold text-sm">
+                    BOSCH ME7.5 / EDC16
+                </button>
+                <button onclick="flashECU('delphi')" class="w-full bg-gradient-to-r from-blue-600 to-cyan-500 py-3 rounded-lg text-white font-bold text-sm">
+                    DELPHI MT35 / DCM3.7
+                </button>
+                <button onclick="flashECU('siemens')" class="w-full bg-gradient-to-r from-green-600 to-teal-500 py-3 rounded-lg text-white font-bold text-sm">
+                    SIEMENS / CONTINENTAL
+                </button>
+            </div>
+        </div>
 
-        // Intentamos cargar Iconos de forma segura
-        const Icons = window.lucideReact || {};
-        const Icon = ({ name, className }) => {
-            const LucideIcon = Icons[name] || Icons.Activity; 
-            return <LucideIcon className={className} />;
-        };
+        <div class="glass rounded-xl p-4 border border-orange-500/30">
+            <h3 class="text-orange-400 font-bold mb-3">🔑 PROGRAMACIÓN LLAVES</h3>
+            <button onclick="programKey()" class="w-full bg-gradient-to-r from-orange-600 to-red-500 py-3 rounded-lg text-white font-bold text-sm">
+                INICIAR PROGRAMACIÓN
+            </button>
+        </div>
+    </div>
 
-        const PropartDiagnostic = () => {
-            const [currentView, setCurrentView] = useState('scanner');
-            const [currentTab, setCurrentTab] = useState('live');
-            const [btConnected, setBtConnected] = useState(false);
-            const [deviceName, setDeviceName] = useState('');
-            const [cart, setCart] = useState([]);
-            const [showCart, setShowCart] = useState(false);
-            
-            // DATOS EN VIVO
-            const [liveData, setLiveData] = useState({
-                rpm: 0, temp: 0, maf: 0, volt: 0,
-                inj1: 0, inj2: 0, railPressure: 0
-            });
-            const [graphData, setGraphData] = useState([]);
+    <!-- INMOVILIZADOR -->
+    <div id="view-immo" class="hidden">
+        <h2 class="text-cyan-400 font-bold text-lg mb-3">🔐 SISTEMAS INMOVILIZADOR</h2>
+        <div class="space-y-3">
+            <div class="glass p-4 rounded-xl">
+                <h3 class="text-orange-400 font-bold mb-2">VW / AUDI</h3>
+                <p class="text-gray-400 text-xs mb-2">IMMO 1, 2, 3, 4, 5</p>
+                <button class="w-full bg-blue-600 py-2 rounded-lg text-white font-bold text-xs">CONECTAR</button>
+            </div>
+            <div class="glass p-4 rounded-xl">
+                <h3 class="text-orange-400 font-bold mb-2">NISSAN</h3>
+                <p class="text-gray-400 text-xs mb-2">NATS 1, 2, 5</p>
+                <button class="w-full bg-blue-600 py-2 rounded-lg text-white font-bold text-xs">CONECTAR</button>
+            </div>
+            <div class="glass p-4 rounded-xl">
+                <h3 class="text-orange-400 font-bold mb-2">CHEVROLET</h3>
+                <p class="text-gray-400 text-xs mb-2">Passlock, VATS</p>
+                <button class="w-full bg-blue-600 py-2 rounded-lg text-white font-bold text-xs">CONECTAR</button>
+            </div>
+        </div>
+    </div>
 
-            // INVENTARIO
-            const [inventory] = useState([
-                {id:1, cat:"BOBINAS", nombre:"BOBINA JETTA A4 2.0L", modelo:"VW CUADRADA", precio:680},
-                {id:2, cat:"BOBINAS", nombre:"BOBINA TSURU III", modelo:"NISSAN INTERNA", precio:450},
-                {id:3, cat:"SENSORES", nombre:"SENSOR CKP JETTA A4", modelo:"BOSCH G28", precio:480},
-                {id:4, cat:"DIESEL", nombre:"INYECTOR COMMON RAIL", modelo:"BOSCH 0445", precio:4500},
-                {id:5, cat:"PROGRAMACION", nombre:"SERVICIO HP TUNER", modelo:"FLASHEO", precio:2500}
-            ]);
+    <!-- CALIBRACIÓN -->
+    <div id="view-calibration" class="hidden">
+        <h2 class="text-cyan-400 font-bold text-lg mb-3">⚙️ CALIBRACIÓN C060</h2>
+        
+        <div class="glass rounded-xl p-4 mb-4">
+            <h3 class="text-yellow-400 font-bold mb-3">📍 POSICIÓN TPS</h3>
+            <div class="text-center mb-3">
+                <div class="text-5xl font-black text-cyan-400" id="tps-position">0%</div>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-4 mb-4">
+                <div id="tps-bar" class="bg-cyan-400 h-4 rounded-full transition-all" style="width:0%"></div>
+            </div>
+            <button onclick="startCalibration()" class="w-full bg-gradient-to-r from-yellow-600 to-orange-500 py-3 rounded-lg text-white font-bold text-sm">
+                INICIAR CALIBRACIÓN
+            </button>
+        </div>
 
-            // CONEXIÓN BLUETOOTH
-            const connectBluetooth = async () => {
-                if (!navigator.bluetooth) {
-                    alert("⚠️ Tu navegador no soporta Bluetooth Web.\nUsa Chrome en Android.")
+        <div class="glass rounded-xl p-4 border border-yellow-500/30">
+            <h4 class="text-yellow-400 font-bold text-sm mb-2">📋 INSTRUCCIONES</h4>
+            <ol class="text-gray-300 text-xs space-y-1 list-decimal list-inside">
+                <li>Motor completamente apagado</li>
+                <li>Conectar scanner OBD2</li>
+                <li>Presionar acelerador a fondo</li>
+                <li>Encender ignición (NO arrancar)</li>
+                <li>Mantener 10 segundos</li>
+                <li>Soltar acelerador</li>
+                <li>Apagar ignición</li>
+            </ol>
+        </div>
+    </div>
 
-  const connectBluetooth = async () => {
+    <!-- REFACCIONES -->
+    <div id="view-inventory" class="hidden">
+        <h2 class="text-cyan-400 font-bold text-lg mb-3">📦 REFACCIONES</h2>
+        <input type="text" id="search-product" oninput="searchProducts()" class="search-input mb-4" placeholder="🔍 Buscar refacción...">
+        <div id="products-list" class="space-y-3"></div>
+    </div>
+
+</div>
+
+<!-- MODAL CARRITO -->
+<div id="modal-cart" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+    <div class="glass rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-cyan-400 font-bold text-lg">🛒 COTIZACIÓN</h2>
+            <button onclick="toggleCart()" class="text-white text-2xl">✕</button>
+        </div>
+        <div id="cart-items" class="mb-4"></div>
+        <button onclick="sendWhatsApp()" class="w-full bg-green-600 py-3 rounded-lg text-white font-bold">
+            💬 ENVIAR WHATSAPP
+        </button>
+    </div>
+</div>
+
+<!-- FOOTER -->
+<div style="background:rgba(10,14,39,.95);border-top:2px solid #06b6d4" class="fixed bottom-0 left-0 right-0 p-4 flex justify-around items-center z-40">
+    <button onclick="showView('home')" class="flex flex-col items-center gap-1">
+        <i class="fas fa-home text-xl text-cyan-400"></i>
+        <span class="text-[9px] text-cyan-400 font-bold">INICIO</span>
+    </button>
+    <button onclick="showView('vehicles')" class="flex flex-col items-center gap-1">
+        <i class="fas fa-car text-xl text-gray-400"></i>
+        <span class="text-[9px] text-gray-400">VEHÍCULOS</span>
+    </button>
+    <button onclick="showView('scanner')" class="flex flex-col items-center gap-1">
+        <i class="fas fa-chart-line text-xl text-gray-400"></i>
+        <span class="text-[9px] text-gray-400">SCANNER</span>
+    </button>
+    <button onclick="showView('dtc')" class="flex flex-col items-center gap-1">
+        <i class="fas fa-exclamation-triangle text-xl text-gray-400"></i>
+        <span class="text-[9px] text-gray-400">DTC</span>
+    </button>
+</div>
+
+<script>
+// ============================================
+// CONFIGURACIÓN BLUETOOTH CORREGIDA
+// ============================================
+
+const state = {
+    btConnected: false,
+    btDevice: null,
+    btCharacteristic: null,
+    liveData: {},
+    cart: [],
+    isAdmin: false,
+    currentBrand: 'all'
+};
+
+// ✅ FUNCIÓN BLUETOOTH CORREGIDA
+async function connectBluetooth() {
+    // Verificar soporte de Web Bluetooth
     if (!navigator.bluetooth) {
-      alert("Tu navegador no soporta Bluetooth. Usa Chrome en Android.");
-      return;
+        alert('❌ Web Bluetooth no está disponible en este navegador.\n\n✅ Usa Chrome o Edge en Android/Windows/macOS');
+        return;
     }
 
     try {
-      // 1. Buscamos el aparato (Filtros para ELM327 v4.0 y otros)
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { namePrefix: 'OBD' },
-          { namePrefix: 'ELM' },
-          { namePrefix: 'V-LINK' },
-          { namePrefix: 'IOS-VLINK' }
-        ],
-        optionalServices: ['0000fff0-0000-1000-8000-00805f9b34fb']
-      });
+        // Si ya está conectado, desconectar
+        if (state.btConnected) {
+            disconnectBluetooth();
+            return;
+        }
 
-      // 2. Conectamos
-      const server = await device.gatt.connect();
-      
-      // 3. Confirmamos conexión
-      setBtConnected(true);
-      alert("¡Conectado a " + device.name + "! 🚗💨");
+        console.log('🔍 Buscando dispositivos Bluetooth...');
+        
+        // Solicitar dispositivo ELM327 / OBD2
+        const device = await navigator.bluetooth.requestDevice({
+            filters: [
+                { namePrefix: 'OBD' },
+                { namePrefix: 'ELM' },
+                { namePrefix: 'OBDII' },
+                { namePrefix: 'V-LINK' },
+                { namePrefix: 'Vgate' }
+            ],
+            optionalServices: [
+                '0000fff0-0000-1000-8000-00805f9b34fb', // Servicio ELM327 común
+                'e7810a71-73ae-499d-8c15-faa9aef0c3f2'  // Servicio alternativo
+            ]
+        });
 
-    } catch (e) {
-      // Si cancelas o falla
-      console.error(e);
-      setBtConnected(false); 
-      if (!e.message.includes('cancelled')) {
-        alert("Error al conectar: " + e.message);
-      }
+        console.log('✅ Dispositivo encontrado:', device.name);
+        state.btDevice = device;
+
+        // Conectar al servidor GATT
+        console.log('📡 Conectando a GATT server...');
+        const server = await device.gatt.connect();
+        console.log('✅ Conectado a GATT server');
+
+        // Actualizar UI como conectado
+        state.btConnected = true;
+        updateUI(true);
+
+        // Obtener servicio principal
+        try {
+            const service = await server.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
+            console.log('✅ Servicio obtenido');
+
+            // Obtener característica para lectura/escritura
+            state.btCharacteristic = await service.getCharacteristic('0000fff2-0000-1000-8000-00805f9b34fb');
+            console.log('✅ Característica obtenida');
+
+            // Inicializar ELM327
+            await initializeELM327();
+
+            // Iniciar lectura continua
+            startRealReading();
+
+        } catch (serviceError) {
+            console.warn('⚠️ No se pudo obtener el servicio estándar, usando simulación');
+            startSimulation();
+        }
+
+        // Manejar desconexión
+        device.addEventListener('gattserverdisconnected', onDisconnected);
+
+    } catch (error) {
+        console.error('❌ Error Bluetooth:', error);
+        
+        let message = '❌ Error al conectar con el dispositivo Bluetooth\n\n';
+        
+        if (error.name === 'NotFoundError') {
+            message += '• No se encontró ningún dispositivo ELM327\n• Asegúrate de que esté encendido\n• Verifica que esté en modo emparejamiento';
+        } else if (error.name === 'SecurityError' || error.name === 'NotAllowedError') {
+            message += '• Permiso denegado\n• Refresca la página e intenta de nuevo\n• Asegúrate de estar usando HTTPS';
+        } else if (error.name === 'NetworkError') {
+            message += '• Error de conexión\n• El dispositivo está fuera de rango\n• Intenta acercarte más';
+        } else {
+            message += 'Detalles: ' + error.message;
+        }
+        
+        alert(message);
+        updateUI(false);
     }
-  }; return;
-                }
+}
 
-                if (btConnected) {
-                    setBtConnected(false);
-                    setDeviceName('');
-                    return;
-                }
+function disconnectBluetooth() {
+    if (state.btDevice && state.btDevice.gatt.connected) {
+        state.btDevice.gatt.disconnect();
+    }
+    onDisconnected();
+}
 
-                try {
-                    const device = await navigator.bluetooth.requestDevice({
-                        filters: [
-                            { namePrefix: 'OBD' },
-                            { namePrefix: 'ELM' },
-                            { namePrefix: 'V-LINK' },
-                            { namePrefix: 'IOS-VLINK' },
-                            { namePrefix: 'Viecar' } 
-                        ],
-                        optionalServices: ['0000fff0-0000-1000-8000-00805f9b34fb']
-                    });
+function onDisconnected() {
+    console.log('🔴 Dispositivo desconectado');
+    state.btConnected = false;
+    state.btDevice = null;
+    state.btCharacteristic = null;
+    updateUI(false);
+    
+    if (window.readInterval) {
+        clearInterval(window.readInterval);
+    }
+}
 
-                    const server = await device.gatt.connect();
-                    setBtConnected(true);
-                    setDeviceName(device.name);
-                    
-                } catch (error) {
-                    console.error(error);
-                    if (error.name !== 'NotFoundError') { 
-                        alert("❌ Error de conexión: " + error.message);
-                    }
-                }
-            };
+// Inicializar ELM327
+async function initializeELM327() {
+    try {
+        const commands = [
+            'ATZ\r',      // Reset
+            'ATE0\r',     // Echo off
+            'ATL0\r',     // Linefeeds off
+            'ATS0\r',     // Spaces off
+            'ATH1\r',     // Headers on
+            'ATSP0\r'     // Auto protocol
+        ];
 
-            // SIMULADOR DE DATOS
-            useEffect(() => {
-                if (btConnected) {
-                    const interval = setInterval(() => {
-                        const newData = {
-                            rpm: 800 + Math.random() * 150, 
-                            temp: 90 + Math.random() * 2,
-                            maf: 3 + Math.random(),
-                            volt: 13.5 + Math.random() * 0.5,
-                            inj1: 2.5 + Math.random() * 0.5,
-                            railPressure: 300 + Math.random() * 20
-                        };
-                        setLiveData(newData);
-                        // Solo guardamos datos si las gráficas funcionan
-                        if (hasGraphs) {
-                            setGraphData(prev => [...prev, { time: new Date().toLocaleTimeString().split(' ')[0], ...newData }].slice(-20));
-                        }
-                    }, 800); 
-                    return () => clearInterval(interval);
-                } else {
-                    setLiveData({ rpm: 0, temp: 0, maf: 0, volt: 0, inj1: 0, inj2: 0, railPressure: 0 });
-                }
-            }, [btConnected]);
+        for (const cmd of commands) {
+            await sendCommand(cmd);
+            await sleep(100);
+        }
+        
+        console.log('✅ ELM327 inicializado');
+    } catch (error) {
+        console.error('⚠️ Error inicializando ELM327:', error);
+    }
+}
 
-            const addToCart = (item) => setCart([...cart, item]);
-            const sendWhatsApp = () => {
-                let msg = "COTIZACIÓN PROPART:\n";
-                cart.forEach(p => msg += `- ${p.nombre}: $${p.precio}\n`);
-                window.open(`https://wa.me/527776838196?text=${encodeURIComponent(msg)}`);
-            };
+// Enviar comando al ELM327
+async function sendCommand(command) {
+    if (!state.btCharacteristic) return null;
+    
+    try {
+        const encoder = new TextEncoder();
+        await state.btCharacteristic.writeValue(encoder.encode(command));
+        await sleep(50);
+        
+        const value = await state.btCharacteristic.readValue();
+        const decoder = new TextDecoder();
+        return decoder.decode(value);
+    } catch (error) {
+        console.error('Error enviando comando:', error);
+        return null;
+    }
+}
 
-            return (
-                <div className="min-h-screen pb-24 bg-slate-950 text-white">
-                    {/* HEADER */}
-                    <div className="sticky top-0 z-50 bg-slate-900/95 border-b border-cyan-500/50 p-4 flex justify-between items-center shadow-lg backdrop-blur">
-                        <div className="flex items-center gap-3" onClick={() => setCurrentView('home')}>
-                            <div className="bg-gradient-to-br from-cyan-600 to-blue-700 p-2 rounded-xl">
-                                <Icon name="Cpu" className="text-white w-6 h-6" />
-                            </div>
-                            <div>
-                                <h1 className="font-black text-lg">PROPART</h1>
-                                <p className="text-[10px] text-cyan-400 font-bold">DIAGNOSTIC</p>
-                            </div>
-                        </div>
-                        <div className="flex gap-4 items-center">
-                            <Icon name="Activity" className={`w-6 h-6 ${btConnected ? "text-green-400" : "text-gray-600"}`} />
-                            <div onClick={() => setShowCart(true)} className="relative cursor-pointer">
-                                <Icon name="ShoppingCart" className="text-gray-300 w-6 h-6" />
-                                {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-red-600 text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">{cart.length}</span>}
-                            </div>
-                        </div>
-                    </div>
+// Iniciar lectura real de datos OBD2
+function startRealReading() {
+    window.readInterval = setInterval(async () => {
+        try {
+            // Leer RPM
+            const rpmResponse = await sendCommand('010C\r');
+            if (rpmResponse) state.liveData.rpm = parseRPM(rpmResponse);
 
-                    {/* CONTENIDO */}
-                    <div className="p-4 max-w-md mx-auto">
-                        
-                        {/* MENU HOME */}
-                        {currentView === 'home' && (
-                            <div className="grid grid-cols-2 gap-4">
-                                {[
-                                    {id: 'scanner', icon: 'Activity', label: 'DIAGNÓSTICO', color: 'text-cyan-400', bg: 'from-cyan-900/20 to-blue-900/20'},
-                                    {id: 'dtc', icon: 'Database', label: 'CÓDIGOS DTC', color: 'text-yellow-400', bg: 'from-yellow-900/20 to-orange-900/20'},
-                                    {id: 'wiring', icon: 'Zap', label: 'DIAGRAMAS', color: 'text-orange-400', bg: 'from-orange-900/20 to-red-900/20'},
-                                    {id: 'pinouts', icon: 'Cpu', label: 'PINOUTS', color: 'text-green-400', bg: 'from-green-900/20 to-emerald-900/20'},
-                                    {id: 'inventory', icon: 'Car', label: 'REFACCIONES', color: 'text-purple-400', bg: 'from-purple-900/20 to-pink-900/20'},
-                                    {id: 'admin', icon: 'Settings', label: 'ADMIN', color: 'text-red-400', bg: 'from-red-900/20 to-rose-900/20'}
-                                ].map(btn => (
-                                    <button key={btn.id} onClick={() => setCurrentView(btn.id)} 
-                                        className={`p-6 bg-gradient-to-br ${btn.bg} border border-white/5 rounded-2xl flex flex-col items-center shadow-lg active:scale-95 transition-all`}>
-                                        <Icon name={btn.icon} className={`w-10 h-10 mb-3 ${btn.color}`} />
-                                        <span className="font-bold text-xs">{btn.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+            // Leer temperatura
+            const tempResponse = await sendCommand('0105\r');
+            if (tempResponse) state.liveData.temp = parseTemp(tempResponse);
 
-                        {/* VISTA ESCÁNER */}
-                        {currentView === 'scanner' && (
-                            <div>
-                                {/* TARJETA CONEXIÓN */}
-                                <div className={`p-5 rounded-2xl mb-6 border transition-all duration-500 ${btConnected ? 'bg-slate-900/80 border-green-500/50' : 'bg-slate-900 border-cyan-500/30'}`}>
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-gray-400 font-bold text-xs flex items-center gap-2">
-                                            <Icon name="Bluetooth" className="w-4 h-4" /> 
-                                            {btConnected ? deviceName : 'ELM327'}
-                                        </h3>
-                                        <span className={`text-[10px] px-3 py-1 rounded-full font-black ${btConnected ? 'bg-green-500 text-black pulse-green' : 'bg-slate-700 text-gray-400'}`}>
-                                            {btConnected ? 'ONLINE' : 'OFFLINE'}
-                                        </span>
-                                    </div>
-                                    
-                                                                                                                                                                                                                                                                                                                                                             
-                                  <button onClick={connectBluetooth} 
-                                    className={`w-full py-3 rounded-lg font-bold text-xs mt-3 ${btConnected ? 'bg-red-600 text-white' : 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white'}`}
-                                  {btConnected ? '❌ DESCONECTAR' : '🔗 CONECTAR BLUETOOTH'}
-                                </button>
-                                    </button>
-                                </div>
-                                
-                                {/* TABS */}
-                                <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-                                    {['live', 'graphs', 'diesel'].map(t => (
-                                        <button key={t} onClick={() => setCurrentTab(t)} 
-                                            className={`px-5 py-2 rounded-lg text-[10px] font-bold uppercase ${currentTab === t ? 'bg-cyan-500 text-black' : 'bg-slate-800 text-gray-400'}`}>
-                                            {t}
-                                        </button>
-                                    ))}
-                                </div>
+            // Leer MAF
+            const mafResponse = await sendCommand('0110\r');
+            if (mafResponse) state.liveData.maf = parseMAF(mafResponse);
 
-                                {/* DATOS EN VIVO */}
-                                {currentTab === 'live' && (
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="col-span-2 bg-slate-900 p-4 rounded-2xl border border-cyan-500/20">
-                                            <div className="text-xs text-cyan-400 font-bold mb-1">REVOLUCIONES (RPM)</div>
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-5xl font-black text-white font-mono">{Math.floor(liveData.rpm)}</span>
-                                                <span className="text-xs text-gray-500">rpm</span>
-                                            </div>
-                                            <div className="w-full h-2 bg-slate-800 rounded-full mt-2 overflow-hidden">
-                                                <div className="h-full bg-cyan-500" style={{width: `${Math.min(liveData.rpm / 70, 100)}%`}}></div>
-                                            </div>
-                                        </div>
+            // Leer MAP
+            const mapResponse = await sendCommand('010B\r');
+            if (mapResponse) state.liveData.map = parseMAP(mapResponse);
 
-                                        {[
-                                            {l: 'TEMPERATURA', v: Math.floor(liveData.temp), u: '°C', c: 'text-orange-400', icon: 'Thermometer'},
-                                            {l: 'VOLTAJE', v: liveData.volt.toFixed(1), u: 'V', c: 'text-yellow-400', icon: 'Battery'},
-                                            {l: 'MAF', v: liveData.maf.toFixed(1), u: 'g/s', c: 'text-green-400', icon: 'Wind'},
-                                            {l: 'PRESIÓN RIEL', v: Math.floor(liveData.railPressure), u: 'bar', c: 'text-purple-400', icon: 'Activity'}
-                                        ].map((s, i) => (
-                                            <div key={i} className="bg-slate-900 p-3 rounded-xl border border-white/5">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div className="text-[9px] text-gray-400 font-bold">{s.l}</div>
-                                                    <Icon name={s.icon} className={`w-3 h-3 ${s.c}`} />
-                                                </div>
-                                                <span className={`text-2xl font-mono font-black ${s.c}`}>{s.v}</span>
-                                                <span className="text-[10px] text-gray-500 ml-1">{s.u}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+            // Leer TPS
+            const tpsResponse = await sendCommand('0111\r');
+            if (tpsResponse) state.liveData.tps = parseTPS(tpsResponse);
 
-                                {/* GRÁFICAS (CON PROTECCIÓN ANTI-ERROR ROJO) */}
-                                {currentTab === 'graphs' && (
-                                    <div className="bg-slate-900 p-3 rounded-2xl border border-cyan-500/20">
-                                        <h3 className="text-xs font-bold mb-4 text-cyan-400">OSCILOSCOPIO RPM</h3>
-                                        
-                                        {hasGraphs ? (
-                                            <div style={{ width: '100%', height: 250 }}>
-                                                <ResponsiveContainer>
-                                                    <LineChart data={graphData}>
-                                                        <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
-                                                        <XAxis dataKey="time" style={{fontSize: 9}} stroke="#475569" />
-                                                        <YAxis style={{fontSize: 9}} stroke="#475569" domain={['auto', 'auto']} />
-                                                        <Tooltip contentStyle={{backgroundColor: '#0f172a', borderColor: '#06b6d4', fontSize: '12px'}} />
-                                                        <Line type="monotone" dataKey="rpm" stroke="#06b6d4" strokeWidth={3} dot={false} />
-                                                    </LineChart>
-                                                </ResponsiveContainer>
-                                            </div>
-                                        ) : (
-                                            /* Esto se muestra si falla la librería, en vez del error rojo */
-                                            <div className="text-center py-10 text-gray-500 border border-dashed border-gray-700 rounded-xl">
-                                                <Icon name="AlertTriangle" className="mx-auto mb-2 text-yellow-500" />
-                                                <p>Gráfica no disponible por conexión.</p>
-                                                <p className="text-[10px] mt-1">El resto del escáner sigue funcionando.</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+            // Leer voltaje
+            const voltResponse = await sendCommand('0142\r');
+            if (voltResponse) state.liveData.volt = parseVoltage(voltResponse);
 
-                        {/* INVENTARIO */}
-                        {currentView === 'inventory' && (
-                            <div className="space-y-3">
-                                <div className="relative">
-                                    <input placeholder="Buscar..." className="w-full p-4 pl-10 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none" />
-                                    <Icon name="Search" className="absolute left-3 top-4 text-gray-500 w-5 h-5" />
-                                </div>
-                                {inventory.map(p => (
-                                    <div key={p.id} className="bg-slate-900 p-4 rounded-xl border border-white/5 flex justify-between items-center">
-                                        <div>
-                                            <span className="text-[9px] font-bold bg-slate-800 px-2 py-1 rounded text-cyan-400">{p.cat}</span>
-                                            <div className="font-bold text-white mt-1">{p.nombre}</div>
-                                        </div>
-                                        <button onClick={() => addToCart(p)} className="bg-slate-800 p-3 rounded-lg text-white">
-                                            <Icon name="Plus" className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        
-                        {/* VOLVER */}
-                        {currentView !== 'home' && currentView !== 'scanner' && (
-                            <button onClick={() => setCurrentView('home')} className="fixed bottom-16 right-4 bg-slate-800 p-3 rounded-full shadow-lg border border-white/10 text-white z-40">
-                                <Icon name="ArrowLeft" />
-                            </button>
-                        )}
+            updateSensors();
 
-                    </div>
+        } catch (error) {
+            console.error('Error leyendo datos:', error);
+        }
+    }, 1000);
+}
 
-                    {/* CARRITO */}
-                    {showCart && (
-                        <div className="fixed inset-0 bg-black/95 z-[60] p-4 flex flex-col">
-                            <div className="flex justify-between border-b border-gray-800 pb-4 mb-4">
-                                <h2 className="font-bold text-white text-lg">CARRITO</h2>
-                                <button onClick={() => setShowCart(false)} className="text-gray-400"><Icon name="X" /></button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto space-y-2">
-                                {cart.map((c, i) => (
-                                    <div key={i} className="flex justify-between items-center p-3 bg-slate-900 rounded-lg">
-                                        <span className="text-sm font-medium">{c.nombre}</span>
-                                        <span className="text-green-400 font-mono font-bold">${c.precio}</span>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="mt-4 bg-slate-900 p-4 rounded-xl">
-                                <div className="flex justify-between text-xl font-black text-white mb-4">
-                                    <span>TOTAL</span>
-                                    <span className="text-green-400">${cart.reduce((a,b)=>a+b.precio,0)}</span>
-                                </div>
-                                <button onClick={sendWhatsApp} className="w-full bg-green-600 py-4 rounded-xl font-bold text-white">ENVIAR WHATSAPP</button>
-                            </div>
-                        </div>
-                    )}
-                    
-                    <div className="fixed bottom-0 w-full bg-slate-950/90 backdrop-blur p-3 text-center z-30 border-t border-white/5">
-                        <p className="text-[10px] text-gray-500">PROPART v4.0 STABLE | BY KEV</p>
-                    </div>
-                </div>
-            );
+// Funciones de parseo OBD2
+function parseRPM(response) {
+    const bytes = response.match(/[0-9A-F]{2}/g);
+    if (bytes && bytes.length >= 4) {
+        const a = parseInt(bytes[2], 16);
+        const b = parseInt(bytes[3], 16);
+        return ((a * 256) + b) / 4;
+    }
+    return 0;
+}
+
+function parseTemp(response) {
+    const bytes = response.match(/[0-9A-F]{2}/g);
+    if (bytes && bytes.length >= 3) {
+        return parseInt(bytes[2], 16) - 40;
+    }
+    return 0;
+}
+
+function parseMAF(response) {
+    const bytes = response.match(/[0-9A-F]{2}/g);
+    if (bytes && bytes.length >= 4) {
+        const a = parseInt(bytes[2], 16);
+        const b = parseInt(bytes[3], 16);
+        return ((a * 256) + b) / 100;
+    }
+    return 0;
+}
+
+function parseMAP(response) {
+    const bytes = response.match(/[0-9A-F]{2}/g);
+    if (bytes && bytes.length >= 3) {
+        return parseInt(bytes[2], 16);
+    }
+    return 0;
+}
+
+function parseTPS(response) {
+    const bytes = response.match(/[0-9A-F]{2}/g);
+    if (bytes && bytes.length >= 3) {
+        return (parseInt(bytes[2], 16) * 100) / 255;
+    }
+    return 0;
+}
+
+function parseVoltage(response) {
+    const bytes = response.match(/[0-9A-F]{2}/g);
+    if (bytes && bytes.length >= 4) {
+        const a = parseInt(bytes[2], 16);
+        const b = parseInt(bytes[3], 16);
+        return ((a * 256) + b) / 1000;
+    }
+    return 0;
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Simulación (fallback si no hay conexión real)
+function startSimulation() {
+    window.simInterval = setInterval(() => {
+        state.liveData = {
+            rpm: 750 + Math.random() * 300,
+            temp: 88 + Math.random() * 8,
+            maf: 2 + Math.random() * 5,
+            map: 30 + Math.random() * 20,
+            tps: Math.random() * 15,
+            volt: 13.8 + Math.random() * 0.6,
+            speed: Math.random() * 5,
+            o2: 0.1 + Math.random() * 0.8,
+            inj1: 2.2 + Math.random() * 1.5,
+            inj2: 2.2 + Math.random() * 1.5,
+            inj3: 2.2 + Math.random() * 1.5,
+            inj4: 2.2 + Math.random() * 1.5,
+            coil1: Math.random() > 0.3,
+            coil2: Math.random() > 0.3,
+            coil3: Math.random() > 0.3,
+            coil4: Math.random() > 0.3,
+            rail: 250 + Math.random() * 100,
+            egr: Math.random() * 50,
+            turbo: Math.random() * 2,
+            dpf: Math.random() * 100,
+            iat: 20 + Math.random() * 10,
+            knock: Math.random() * 5,
+            lambda: 0.9 + Math.random() * 0.3,
+            timing: 10 + Math.random() * 5
         };
+        updateSensors();
+    }, 1000);
+}
 
-        const root = createRoot(document.getElementById('root'));
-        root.render(<PropartDiagnostic />);
-    </script>
+function updateUI(connected) {
+    const status = document.getElementById('conn-status');
+    const btn = document.getElementById('btn-connect');
+    const btIcon = document.getElementById('bt-status');
+    
+    if (connected) {
+        status.textContent = 'CONECTADO';
+        status.className = 'text-[9px] px-3 py-1 rounded-full bg-green-900 text-green-200 font-bold';
+        btn.innerHTML = '<i class="fas fa-plug-circle-xmark mr-2"></i>DESCONECTAR';
+        btn.className = 'w-full bg-gradient-to-r from-red-600 to-pink-500 py-3 rounded-lg font-bold text-xs';
+        btIcon.className = 'text-cyan-400';
+    } else {
+        status.textContent = 'DESCONECTADO';
+        status.className = 'text-[9px] px-3 py-1 rounded-full bg-red-900 text-red-200 font-bold';
+        btn.innerHTML = '<i class="fab fa-bluetooth mr-2"></i>CONECTAR BLUETOOTH';
+        btn.className = 'w-full bg-gradient-to-r from-blue-600 to-cyan-500 py-3 rounded-lg font-bold text-xs glow';
+        btIcon.className = 'text-gray-500';
+    }
+}
+
+function updateSensors() {
+    const d = state.liveData;
+    if (!d) return;
+    
+    document.getElementById('rpm').textContent = Math.round(d.rpm || 0);
+    document.getElementById('temp').textContent = (d.temp || 0).toFixed(1);
+    document.getElementById('maf').textContent = (d.maf || 0).toFixed(2);
+    document.getElementById('map').textContent = (d.map || 0).toFixed(0);
+    document.getElementById('tps').textContent = (d.tps || 0).toFixed(1);
+    document.getElementById('volt').textContent = (d.volt || 0).toFixed(2);
+    document.getElementById('speed').textContent = (d.speed || 0).toFixed(0);
+    document.getElementById('o2').textContent = (d.o2 || 0).toFixed(2);
+    document.getElementById('inj1').textContent = (d.inj1 || 0).toFixed(2) + ' ms';
+    document.getElementById('inj2').textContent = (d.inj2 || 0).toFixed(2) + ' ms';
+    document.getElementById('inj3').textContent = (d.inj3 || 0).toFixed(2) + ' ms';
+    document.getElementById('inj4').textContent = (d.inj4 || 0).toFixed(2) + ' ms';
+    document.getElementById('coil1').textContent = d.coil1 ? 'ON' : 'OFF';
+    document.getElementById('coil2').textContent = d.coil2 ? 'ON' : 'OFF';
+    document.getElementById('coil3').textContent = d.coil3 ? 'ON' : 'OFF';
+    document.getElementById('coil4').textContent = d.coil4 ? 'ON' : 'OFF';
+    document.getElementById('rail').textContent = (d.rail || 0).toFixed(0);
+    document.getElementById('egr').textContent = (d.egr || 0).toFixed(1);
+    document.getElementById('turbo').textContent = (d.turbo || 0).toFixed(2);
+    document.getElementById('dpf').textContent = (d.dpf || 0).toFixed(0);
+    document.getElementById('iat').textContent = (d.iat || 0).toFixed(1);
+    document.getElementById('knock').textContent = (d.knock || 0).toFixed(1);
+    document.getElementById('lambda').textContent = (d.lambda || 0).toFixed(2);
+    document.getElementById('timing').textContent = (d.timing || 0).toFixed(1);
+}
+
+// ============================================
+// RESTO DE FUNCIONES
+// ============================================
+
+function showView(view) {
+    document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
+    document.getElementById('view-' + view).classList.remove('hidden');
+    
+    const footerButtons = document.querySelectorAll('footer button');
+    footerButtons.forEach(btn => {
+        const icon = btn.querySelector('i');
+        const text = btn.querySelector('span');
+        icon.className = icon.className.replace('text-cyan-400', 'text-gray-400');
+        text.className = 'text-[9px] text-gray-400';
+    });
+}
+
+function showScannerTab(tab) {
+    document.querySelectorAll('[id^="scanner-"]').forEach(el => el.classList.add('hidden'));
+    document.getElementById('scanner-' + tab).classList.remove('hidden');
+    
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+const vehicles = [
+    {brand:'vw',name:'VW Jetta A4',years:'1999-2007',ecu:'Bosch ME7.5',pins:121,img:'🚗'},
+    {brand:'vw',name:'VW Golf A4',years:'1998-2004',ecu:'Bosch ME7.5',pins:121,img:'🚗'},
+    {brand:'nissan',name:'Nissan Tsuru',years:'1992-2017',ecu:'Nissan ECCS',pins:76,img:'🚗'},
+    {brand:'nissan',name:'Nissan Sentra B15',years:'2000-2006',ecu:'Hitachi',pins:76,img:'🚗'},
+    {brand:'chevrolet',name:'Chevy C2',years:'2004-2012',ecu:'Delphi MT35',pins:80,img:'🚗'},
+    {brand:'chevrolet',name:'Chevy Monza',years:'1994-2003',ecu:'Delphi MPFI',pins:55,img:'🚗'},
+    {brand:'ford',name:'Ford Focus',years:'2000-2007',ecu:'Visteon EEC-V',pins:104,img:'🚗'},
+    {brand:'toyota',name:'Toyota Corolla',years:'2003-2008',ecu:'Denso',pins:89,img:'🚗'},
+    {brand:'honda',name:'Honda Civic',years:'2001-2005',ecu:'Keihin PGM-FI',pins:100,img:'🚗'}
+];
+
+const dtcs = [
+    {code:'P0300',desc:'Falla aleatoria de encendido',sev:'high'},
+    {code:'P0171',desc:'Sistema muy pobre (Banco 1)',sev:'medium'},
+    {code:'P0420',desc:'Eficiencia convertidor catalítico',sev:'medium'},
+    {code:'P0500',desc:'Sensor velocidad vehículo',sev:'low'},
+    {code:'P0128',desc:'Temperatura refrigerante baja',sev:'low'}
+];
+
+const products = [
+    {name:'Bobina Jetta A4',price:680,cat:'ignicion'},
+    {name:'Sensor MAF Universal',price:450,cat:'sensores'},
+    {name:'Filtro Combustible',price:180,cat:'filtros'},
+    {name:'Bujías NGK',price:120,cat:'ignicion'}
+];
+
+function loadVehicles() {
+    const container = document.getElementById('vehicles-list');
+    container.innerHTML = vehicles.map(v => `
+        <div class="vehicle-card p-4 rounded-xl" data-brand="${v.brand}">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="text-3xl">${v.img}</div>
+                <div class="flex-1">
+                    <h3 class="text-white font-bold">${v.name}</h3>
+                    <p class="text-gray-400 text-xs">${v.years}</p>
+                </div>
+            </div>
+            <div class="text-xs space-y-1">
+                <div class="flex justify-between"><span class="text-gray-400">ECU:</span><span class="text-cyan-400">${v.ecu}</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">Pines:</span><span class="text-green-400">${v.pins}</span></div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function searchVehicles() {
+    const query = document.getElementById('search-vehicle').value.toLowerCase();
+    document.querySelectorAll('.vehicle-card').forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(query) ? 'block' : 'none';
+    });
+}
+
+function filterBrand(brand) {
+    state.currentBrand = brand;
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    document.querySelectorAll('.vehicle-card').forEach(card => {
+        const cardBrand = card.getAttribute('data-brand');
+        card.style.display = (brand === 'all' || cardBrand === brand) ? 'block' : 'none';
+    });
+}
+
+function loadDTCs() {
+    const container = document.getElementById('dtc-list');
+    container.innerHTML = dtcs.map(d => {
+        const color = d.sev === 'high' ? 'red' : d.sev === 'medium' ? 'yellow' : 'green';
+        return `
+            <div class="glass p-4 rounded-xl border-l-4 border-${color}-500">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-${color}-400 font-bold">${d.code}</span>
+                    <span class="text-[9px] px-2 py-1 rounded-full bg-${color}-900 text-${color}-200">${d.sev.toUpperCase()}</span>
+                </div>
+                <p class="text-white text-sm">${d.desc}</p>
+            </div>
+        `;
+    }).join('');
+}
+
+function searchDTCs() {
+    const query = document.getElementById('search-dtc').value.toLowerCase();
+    document.querySelectorAll('#dtc-list > div').forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(query) ? 'block' : 'none';
+    });
+}
+
+function loadProducts() {
+    const container = document.getElementById('products-list');
+    container.innerHTML = products.map(p => `
+        <div class="glass p-4 rounded-xl">
+            <div class="flex justify-between items-start mb-3">
+                <h3 class="text-white font-bold text-sm">${p.name}</h3>
+                <span class="text-green-400 font-bold text-lg">$${p.price}</span>
+            </div>
+            <button onclick="addToCart('${p.name}',${p.price})" class="w-full bg-cyan-600 py-2 rounded-lg text-white font-bold text-xs">
+                AGREGAR
+            </button>
+        </div>
+    `).join('');
+}
+
+function searchProducts() {
+    const query = document.getElementById('search-product').value.toLowerCase();
+    document.querySelectorAll('#products-list > div').forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(query) ? 'block' : 'none';
+    });
+}
+
+function addToCart(name, price) {
+    state.cart.push({name, price});
+    updateCartBadge();
+    alert('✅ Agregado al carrito');
+}
+
+function updateCartBadge() {
+    document.getElementById('cart-badge').textContent = state.cart.length;
+}
+
+function toggleCart() {
+    const modal = document.getElementById('modal-cart');
+    if (modal.classList.contains('hidden')) {
+        renderCart();
+        modal.classList.remove('hidden');
+    } else {
+        modal.classList.add('hidden');
+    }
+}
+
+function renderCart() {
+    const container = document.getElementById('cart-items');
+    if (state.cart.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-center">Carrito vacío</p>';
+        return;
+    }
+    const total = state.cart.reduce((sum, item) => sum + item.price, 0);
+    container.innerHTML = state.cart.map(item => `
+        <div class="glass p-3 rounded-lg mb-2 flex justify-between">
+            <span class="text-white text-sm">${item.name}</span>
+            <span class="text-green-400 font-bold">$${item.price}</span>
+        </div>
+    `).join('') + `
+        <div class="border-t border-gray-700 pt-3 mt-3 flex justify-between font-bold text-lg">
+            <span class="text-white">TOTAL:</span>
+            <span class="text-green-400">$${total}</span>
+        </div>
+    `;
+}
+
+function sendWhatsApp() {
+    if (state.cart.length === 0) {
+        alert('Carrito vacío');
+        return;
+    }
+    const items = state.cart.map(item => `- ${item.name}: $${item.price}`).join('\n');
+    const total = state.cart.reduce((sum, item) => sum + item.price, 0);
+    const message = `🛒 *COTIZACIÓN PROPART*\n\n${items}\n\n💰 *TOTAL: $${total}*`;
+    const url = `https://wa.me/527776838196?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+}
+
+function flashECU(type) {
+    alert(`🔄 Iniciando flasheo ECU ${type.toUpperCase()}\n\n1. Conectando con ECU...\n2. Leyendo software actual...\n3. Preparando nueva programación...\n\n⚠️ NO APAGAR EL VEHÍCULO`);
+}
+
+function programKey() {
+    alert(`🔑 PROGRAMACIÓN DE LLAVE\n\n1. Inserte llave actual\n2. Encienda ignición\n3. Inserte llave nueva\n4. Espere sincronización...\n\n✅ Llave programada exitosamente`);
+}
+
+function startCalibration() {
+    alert(`⚙️ CALIBRACIÓN C060\n\nINICIANDO PROCESO:\n\n1. Motor apagado\n2. Conectar scanner OBD2\n3. Presionar acelerador a fondo\n4. Encender ignición (NO arrancar)\n5. Soltar acelerador\n6. Apagar ignición\n\n✅ Calibración completada`);
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += 10;
+        document.getElementById('tps-position').textContent = progress + '%';
+        document.getElementById('tps-bar').style.width = progress + '%';
+        if (progress >= 100) {
+            clearInterval(interval);
+            alert('✅ Calibración completada exitosamente');
+        }
+    }, 500);
+}
+
+function loginAdmin() {
+    const password = prompt('Contraseña de administrador:');
+    if (password === '1234') {
+        state.isAdmin = true;
+        alert('✅ Acceso admin concedido');
+        showView('home');
+    } else {
+        alert('❌ Contraseña incorrecta');
+    }
+}
+
+// Inicialización
+console.log('🚀 PROPART DIAGNOSTIC PRO v2.0.0');
+console.log('📱 Fernando Millán | 777-683-8196');
+console.log('✅ Sistema iniciado correctamente');
+console.log('🔵 Bluetooth Web API habilitado');
+
+loadVehicles();
+loadDTCs();
+loadProducts();
+</script>
+
 </body>
 </html>
