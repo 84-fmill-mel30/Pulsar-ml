@@ -84,8 +84,42 @@
             // CONEXIÓN BLUETOOTH
             const connectBluetooth = async () => {
                 if (!navigator.bluetooth) {
-                    alert("⚠️ Tu navegador no soporta Bluetooth Web.\nUsa Chrome en Android.");
-                    return;
+                    alert("⚠️ Tu navegador no soporta Bluetooth Web.\nUsa Chrome en Android.")
+
+  const connectBluetooth = async () => {
+    if (!navigator.bluetooth) {
+      alert("Tu navegador no soporta Bluetooth. Usa Chrome en Android.");
+      return;
+    }
+
+    try {
+      // 1. Buscamos el aparato (Filtros para ELM327 v4.0 y otros)
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [
+          { namePrefix: 'OBD' },
+          { namePrefix: 'ELM' },
+          { namePrefix: 'V-LINK' },
+          { namePrefix: 'IOS-VLINK' }
+        ],
+        optionalServices: ['0000fff0-0000-1000-8000-00805f9b34fb']
+      });
+
+      // 2. Conectamos
+      const server = await device.gatt.connect();
+      
+      // 3. Confirmamos conexión
+      setBtConnected(true);
+      alert("¡Conectado a " + device.name + "! 🚗💨");
+
+    } catch (e) {
+      // Si cancelas o falla
+      console.error(e);
+      setBtConnected(false); 
+      if (!e.message.includes('cancelled')) {
+        alert("Error al conectar: " + e.message);
+      }
+    }
+  }; return;
                 }
 
                 if (btConnected) {
@@ -209,10 +243,11 @@
                                         </span>
                                     </div>
                                     
-                                    <button onClick={connectBluetooth} 
-                                        className={`w-full py-4 rounded-xl font-bold text-sm shadow-xl flex items-center justify-center gap-2 
-                                        ${btConnected ? 'bg-red-500/10 text-red-400 border border-red-500/50' : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white'}`}>
-                                        {btConnected ? 'DESCONECTAR' : 'CONECTAR AHORA'}
+                                                                                                                                                                                                                                                                                                                                                             
+                                  <button onClick={connectBluetooth} 
+                                    className={`w-full py-3 rounded-lg font-bold text-xs mt-3 ${btConnected ? 'bg-red-600 text-white' : 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white'}`}
+                                  {btConnected ? '❌ DESCONECTAR' : '🔗 CONECTAR BLUETOOTH'}
+                                </button>
                                     </button>
                                 </div>
                                 
