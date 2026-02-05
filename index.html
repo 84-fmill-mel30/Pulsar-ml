@@ -1,17 +1,17 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PROPART DIAGNOSTIC V3</title>
+    <title>PROPART DIAGNOSTIC V4 (STABLE)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.1.12/Recharts.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"></script>
     
     <script src="https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.min.js"></script>
 
@@ -21,15 +21,12 @@
         body { background-color: #020617; color: white; font-family: sans-serif; }
         .loader { border: 4px solid #333; border-top: 4px solid #06b6d4; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* Animación de pulso para cuando esté conectado */
         .pulse-green { animation: pulse-green 2s infinite; }
         @keyframes pulse-green {
             0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
             70% { box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
             100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
         }
-        /* Pantalla de error oculta por defecto */
-        #error-display { display: none; padding: 20px; text-align: center; color: #fca5a5; background: #450a0a; }
     </style>
 </head>
 <body>
@@ -38,338 +35,323 @@
         <div style="text-align: center; padding-top: 50px;">
             <div class="loader"></div>
             <p class="text-cyan-400 mt-4">Cargando Sistema PROPART...</p>
-            <p class="text-gray-600 text-[10px] mt-2">Conectando librerías...</p>
         </div>
     </div>
 
-    <div id="error-display">
-        <h2 class="text-xl font-bold mb-2">⚠️ ALERTA DE SISTEMA</h2>
-        <p id="error-message">Error desconocido.</p>
-        <button onclick="location.reload()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded">RECARGAR PÁGINA</button>
-    </div>
-
     <script type="text/babel">
-        try {
-            const { useState, useEffect } = React;
-            const { createRoot } = ReactDOM;
-            
-            // --- PROTECCIÓN CONTRA FALLO DE GRÁFICAS ---
-            // Si Recharts no carga, no tronamos la app, solo desactivamos las gráficas
-            const RechartsLib = window.Recharts || null;
-            const hasGraphs = !!RechartsLib;
-            
-            // Extraemos componentes de forma segura
-            const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = RechartsLib || {};
+        // --- SEGURIDAD: Prevenimos el error rojo si fallan las librerías ---
+        const { useState, useEffect } = React;
+        const { createRoot } = ReactDOM;
+        
+        // Intentamos cargar Recharts de forma segura
+        const RechartsLib = window.Recharts || null;
+        const hasGraphs = !!RechartsLib; // Verdadero si cargó, Falso si falló
+        
+        // Solo extraemos si existe, si no, usamos objetos vacíos para que no truene
+        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = RechartsLib || {};
 
-            // --- PROTECCIÓN DE ICONOS ---
-            const Icons = window.lucideReact || {};
-            const Icon = ({ name, className }) => {
-                const LucideIcon = Icons[name] || Icons.Activity; 
-                return <LucideIcon className={className} />;
+        // Intentamos cargar Iconos de forma segura
+        const Icons = window.lucideReact || {};
+        const Icon = ({ name, className }) => {
+            const LucideIcon = Icons[name] || Icons.Activity; 
+            return <LucideIcon className={className} />;
+        };
+
+        const PropartDiagnostic = () => {
+            const [currentView, setCurrentView] = useState('scanner');
+            const [currentTab, setCurrentTab] = useState('live');
+            const [btConnected, setBtConnected] = useState(false);
+            const [deviceName, setDeviceName] = useState('');
+            const [cart, setCart] = useState([]);
+            const [showCart, setShowCart] = useState(false);
+            
+            // DATOS EN VIVO
+            const [liveData, setLiveData] = useState({
+                rpm: 0, temp: 0, maf: 0, volt: 0,
+                inj1: 0, inj2: 0, railPressure: 0
+            });
+            const [graphData, setGraphData] = useState([]);
+
+            // INVENTARIO
+            const [inventory] = useState([
+                {id:1, cat:"BOBINAS", nombre:"BOBINA JETTA A4 2.0L", modelo:"VW CUADRADA", precio:680},
+                {id:2, cat:"BOBINAS", nombre:"BOBINA TSURU III", modelo:"NISSAN INTERNA", precio:450},
+                {id:3, cat:"SENSORES", nombre:"SENSOR CKP JETTA A4", modelo:"BOSCH G28", precio:480},
+                {id:4, cat:"DIESEL", nombre:"INYECTOR COMMON RAIL", modelo:"BOSCH 0445", precio:4500},
+                {id:5, cat:"PROGRAMACION", nombre:"SERVICIO HP TUNER", modelo:"FLASHEO", precio:2500}
+            ]);
+
+            // CONEXIÓN BLUETOOTH
+            const connectBluetooth = async () => {
+                if (!navigator.bluetooth) {
+                    alert("⚠️ Tu navegador no soporta Bluetooth Web.\nUsa Chrome en Android.");
+                    return;
+                }
+
+                if (btConnected) {
+                    setBtConnected(false);
+                    setDeviceName('');
+                    return;
+                }
+
+                try {
+                    const device = await navigator.bluetooth.requestDevice({
+                        filters: [
+                            { namePrefix: 'OBD' },
+                            { namePrefix: 'ELM' },
+                            { namePrefix: 'V-LINK' },
+                            { namePrefix: 'IOS-VLINK' },
+                            { namePrefix: 'Viecar' } 
+                        ],
+                        optionalServices: ['0000fff0-0000-1000-8000-00805f9b34fb']
+                    });
+
+                    const server = await device.gatt.connect();
+                    setBtConnected(true);
+                    setDeviceName(device.name);
+                    
+                } catch (error) {
+                    console.error(error);
+                    if (error.name !== 'NotFoundError') { 
+                        alert("❌ Error de conexión: " + error.message);
+                    }
+                }
             };
 
-            const PropartDiagnostic = () => {
-                const [currentView, setCurrentView] = useState('scanner');
-                const [currentTab, setCurrentTab] = useState('live');
-                const [btConnected, setBtConnected] = useState(false);
-                const [deviceName, setDeviceName] = useState('');
-                const [cart, setCart] = useState([]);
-                const [showCart, setShowCart] = useState(false);
-                
-                // --- DATOS EN VIVO ---
-                const [liveData, setLiveData] = useState({
-                    rpm: 0, temp: 0, maf: 0, volt: 0,
-                    inj1: 0, inj2: 0, railPressure: 0
-                });
-                const [graphData, setGraphData] = useState([]);
-
-                // --- INVENTARIO ---
-                const [inventory] = useState([
-                    {id:1, cat:"BOBINAS", nombre:"BOBINA JETTA A4 2.0L", modelo:"VW CUADRADA", precio:680},
-                    {id:2, cat:"BOBINAS", nombre:"BOBINA TSURU III", modelo:"NISSAN INTERNA", precio:450},
-                    {id:3, cat:"SENSORES", nombre:"SENSOR CKP JETTA A4", modelo:"BOSCH G28", precio:480},
-                    {id:4, cat:"DIESEL", nombre:"INYECTOR COMMON RAIL", modelo:"BOSCH 0445", precio:4500},
-                    {id:5, cat:"PROGRAMACION", nombre:"SERVICIO HP TUNER", modelo:"FLASHEO", precio:2500}
-                ]);
-
-                // --- BLUETOOTH ---
-                const connectBluetooth = async () => {
-                    if (!navigator.bluetooth) {
-                        alert("⚠️ Tu navegador no soporta Bluetooth Web.\n\nUsa 'Chrome' en Android.");
-                        return;
-                    }
-
-                    if (btConnected) {
-                        setBtConnected(false);
-                        setDeviceName('');
-                        return;
-                    }
-
-                    try {
-                        const device = await navigator.bluetooth.requestDevice({
-                            filters: [
-                                { namePrefix: 'OBD' },
-                                { namePrefix: 'ELM' },
-                                { namePrefix: 'V-LINK' },
-                                { namePrefix: 'IOS-VLINK' },
-                                { namePrefix: 'Viecar' } 
-                            ],
-                            optionalServices: ['0000fff0-0000-1000-8000-00805f9b34fb']
-                        });
-
-                        const server = await device.gatt.connect();
-                        setBtConnected(true);
-                        setDeviceName(device.name);
-                        
-                    } catch (error) {
-                        console.error(error);
-                        if (error.name !== 'NotFoundError') { 
-                            alert("❌ Error de conexión: " + error.message);
+            // SIMULADOR DE DATOS
+            useEffect(() => {
+                if (btConnected) {
+                    const interval = setInterval(() => {
+                        const newData = {
+                            rpm: 800 + Math.random() * 150, 
+                            temp: 90 + Math.random() * 2,
+                            maf: 3 + Math.random(),
+                            volt: 13.5 + Math.random() * 0.5,
+                            inj1: 2.5 + Math.random() * 0.5,
+                            railPressure: 300 + Math.random() * 20
+                        };
+                        setLiveData(newData);
+                        // Solo guardamos datos si las gráficas funcionan
+                        if (hasGraphs) {
+                            setGraphData(prev => [...prev, { time: new Date().toLocaleTimeString().split(' ')[0], ...newData }].slice(-20));
                         }
-                    }
-                };
+                    }, 800); 
+                    return () => clearInterval(interval);
+                } else {
+                    setLiveData({ rpm: 0, temp: 0, maf: 0, volt: 0, inj1: 0, inj2: 0, railPressure: 0 });
+                }
+            }, [btConnected]);
 
-                // Simulador
-                useEffect(() => {
-                    if (btConnected) {
-                        const interval = setInterval(() => {
-                            const newData = {
-                                rpm: 800 + Math.random() * 150, 
-                                temp: 90 + Math.random() * 2,
-                                maf: 3 + Math.random(),
-                                volt: 13.5 + Math.random() * 0.5,
-                                inj1: 2.5 + Math.random() * 0.5,
-                                railPressure: 300 + Math.random() * 20
-                            };
-                            setLiveData(newData);
-                            // Solo guardamos datos de gráfica si la librería cargó
-                            if (hasGraphs) {
-                                setGraphData(prev => [...prev, { time: new Date().toLocaleTimeString().split(' ')[0], ...newData }].slice(-20));
-                            }
-                        }, 800); 
-                        return () => clearInterval(interval);
-                    } else {
-                        setLiveData({ rpm: 0, temp: 0, maf: 0, volt: 0, inj1: 0, inj2: 0, railPressure: 0 });
-                    }
-                }, [btConnected]);
+            const addToCart = (item) => setCart([...cart, item]);
+            const sendWhatsApp = () => {
+                let msg = "COTIZACIÓN PROPART:\n";
+                cart.forEach(p => msg += `- ${p.nombre}: $${p.precio}\n`);
+                window.open(`https://wa.me/527776838196?text=${encodeURIComponent(msg)}`);
+            };
 
-                const addToCart = (item) => setCart([...cart, item]);
-                const sendWhatsApp = () => {
-                    let msg = "COTIZACIÓN PROPART:\n";
-                    cart.forEach(p => msg += `- ${p.nombre}: $${p.precio}\n`);
-                    window.open(`https://wa.me/527776838196?text=${encodeURIComponent(msg)}`);
-                };
-
-                return (
-                    <div className="min-h-screen pb-24 bg-slate-950 text-white">
-                        {/* HEADER */}
-                        <div className="sticky top-0 z-50 bg-slate-900/95 border-b border-cyan-500/50 p-4 flex justify-between items-center shadow-lg backdrop-blur">
-                            <div className="flex items-center gap-3" onClick={() => setCurrentView('home')}>
-                                <div className="bg-gradient-to-br from-cyan-600 to-blue-700 p-2 rounded-xl">
-                                    <Icon name="Cpu" className="text-white w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h1 className="font-black text-lg">PROPART</h1>
-                                    <p className="text-[10px] text-cyan-400 font-bold">DIAGNOSTIC</p>
-                                </div>
+            return (
+                <div className="min-h-screen pb-24 bg-slate-950 text-white">
+                    {/* HEADER */}
+                    <div className="sticky top-0 z-50 bg-slate-900/95 border-b border-cyan-500/50 p-4 flex justify-between items-center shadow-lg backdrop-blur">
+                        <div className="flex items-center gap-3" onClick={() => setCurrentView('home')}>
+                            <div className="bg-gradient-to-br from-cyan-600 to-blue-700 p-2 rounded-xl">
+                                <Icon name="Cpu" className="text-white w-6 h-6" />
                             </div>
-                            <div className="flex gap-4 items-center">
-                                <Icon name="Activity" className={`w-6 h-6 ${btConnected ? "text-green-400" : "text-gray-600"}`} />
-                                <div onClick={() => setShowCart(true)} className="relative cursor-pointer">
-                                    <Icon name="ShoppingCart" className="text-gray-300 w-6 h-6" />
-                                    {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-red-600 text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">{cart.length}</span>}
-                                </div>
+                            <div>
+                                <h1 className="font-black text-lg">PROPART</h1>
+                                <p className="text-[10px] text-cyan-400 font-bold">DIAGNOSTIC</p>
                             </div>
                         </div>
+                        <div className="flex gap-4 items-center">
+                            <Icon name="Activity" className={`w-6 h-6 ${btConnected ? "text-green-400" : "text-gray-600"}`} />
+                            <div onClick={() => setShowCart(true)} className="relative cursor-pointer">
+                                <Icon name="ShoppingCart" className="text-gray-300 w-6 h-6" />
+                                {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-red-600 text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">{cart.length}</span>}
+                            </div>
+                        </div>
+                    </div>
 
-                        {/* CONTENIDO */}
-                        <div className="p-4 max-w-md mx-auto">
-                            
-                            {/* MENU PRINCIPAL */}
-                            {currentView === 'home' && (
-                                <div className="grid grid-cols-2 gap-4">
-                                    {[
-                                        {id: 'scanner', icon: 'Activity', label: 'DIAGNÓSTICO', color: 'text-cyan-400', bg: 'from-cyan-900/20 to-blue-900/20'},
-                                        {id: 'dtc', icon: 'Database', label: 'CÓDIGOS DTC', color: 'text-yellow-400', bg: 'from-yellow-900/20 to-orange-900/20'},
-                                        {id: 'wiring', icon: 'Zap', label: 'DIAGRAMAS', color: 'text-orange-400', bg: 'from-orange-900/20 to-red-900/20'},
-                                        {id: 'pinouts', icon: 'Cpu', label: 'PINOUTS', color: 'text-green-400', bg: 'from-green-900/20 to-emerald-900/20'},
-                                        {id: 'inventory', icon: 'Car', label: 'REFACCIONES', color: 'text-purple-400', bg: 'from-purple-900/20 to-pink-900/20'},
-                                        {id: 'admin', icon: 'Settings', label: 'ADMIN', color: 'text-red-400', bg: 'from-red-900/20 to-rose-900/20'}
-                                    ].map(btn => (
-                                        <button key={btn.id} onClick={() => setCurrentView(btn.id)} 
-                                            className={`p-6 bg-gradient-to-br ${btn.bg} border border-white/5 rounded-2xl flex flex-col items-center shadow-lg active:scale-95 transition-all`}>
-                                            <Icon name={btn.icon} className={`w-10 h-10 mb-3 ${btn.color}`} />
-                                            <span className="font-bold text-xs">{btn.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                    {/* CONTENIDO */}
+                    <div className="p-4 max-w-md mx-auto">
+                        
+                        {/* MENU HOME */}
+                        {currentView === 'home' && (
+                            <div className="grid grid-cols-2 gap-4">
+                                {[
+                                    {id: 'scanner', icon: 'Activity', label: 'DIAGNÓSTICO', color: 'text-cyan-400', bg: 'from-cyan-900/20 to-blue-900/20'},
+                                    {id: 'dtc', icon: 'Database', label: 'CÓDIGOS DTC', color: 'text-yellow-400', bg: 'from-yellow-900/20 to-orange-900/20'},
+                                    {id: 'wiring', icon: 'Zap', label: 'DIAGRAMAS', color: 'text-orange-400', bg: 'from-orange-900/20 to-red-900/20'},
+                                    {id: 'pinouts', icon: 'Cpu', label: 'PINOUTS', color: 'text-green-400', bg: 'from-green-900/20 to-emerald-900/20'},
+                                    {id: 'inventory', icon: 'Car', label: 'REFACCIONES', color: 'text-purple-400', bg: 'from-purple-900/20 to-pink-900/20'},
+                                    {id: 'admin', icon: 'Settings', label: 'ADMIN', color: 'text-red-400', bg: 'from-red-900/20 to-rose-900/20'}
+                                ].map(btn => (
+                                    <button key={btn.id} onClick={() => setCurrentView(btn.id)} 
+                                        className={`p-6 bg-gradient-to-br ${btn.bg} border border-white/5 rounded-2xl flex flex-col items-center shadow-lg active:scale-95 transition-all`}>
+                                        <Icon name={btn.icon} className={`w-10 h-10 mb-3 ${btn.color}`} />
+                                        <span className="font-bold text-xs">{btn.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
-                            {/* VISTA ESCÁNER */}
-                            {currentView === 'scanner' && (
-                                <div>
-                                    {/* TARJETA CONEXIÓN */}
-                                    <div className={`p-5 rounded-2xl mb-6 border transition-all duration-500 ${btConnected ? 'bg-slate-900/80 border-green-500/50' : 'bg-slate-900 border-cyan-500/30'}`}>
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h3 className="text-gray-400 font-bold text-xs flex items-center gap-2">
-                                                <Icon name="Bluetooth" className="w-4 h-4" /> 
-                                                {btConnected ? deviceName : 'ELM327'}
-                                            </h3>
-                                            <span className={`text-[10px] px-3 py-1 rounded-full font-black ${btConnected ? 'bg-green-500 text-black pulse-green' : 'bg-slate-700 text-gray-400'}`}>
-                                                {btConnected ? 'ONLINE' : 'OFFLINE'}
-                                            </span>
-                                        </div>
-                                        
-                                        <button onClick={connectBluetooth} 
-                                            className={`w-full py-4 rounded-xl font-bold text-sm shadow-xl flex items-center justify-center gap-2 
-                                            ${btConnected ? 'bg-red-500/10 text-red-400 border border-red-500/50' : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white'}`}>
-                                            {btConnected ? 'DESCONECTAR' : 'CONECTAR AHORA'}
-                                        </button>
+                        {/* VISTA ESCÁNER */}
+                        {currentView === 'scanner' && (
+                            <div>
+                                {/* TARJETA CONEXIÓN */}
+                                <div className={`p-5 rounded-2xl mb-6 border transition-all duration-500 ${btConnected ? 'bg-slate-900/80 border-green-500/50' : 'bg-slate-900 border-cyan-500/30'}`}>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-gray-400 font-bold text-xs flex items-center gap-2">
+                                            <Icon name="Bluetooth" className="w-4 h-4" /> 
+                                            {btConnected ? deviceName : 'ELM327'}
+                                        </h3>
+                                        <span className={`text-[10px] px-3 py-1 rounded-full font-black ${btConnected ? 'bg-green-500 text-black pulse-green' : 'bg-slate-700 text-gray-400'}`}>
+                                            {btConnected ? 'ONLINE' : 'OFFLINE'}
+                                        </span>
                                     </div>
                                     
-                                    {/* PESTAÑAS */}
-                                    <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-                                        {['live', 'graphs', 'diesel'].map(t => (
-                                            <button key={t} onClick={() => setCurrentTab(t)} 
-                                                className={`px-5 py-2 rounded-lg text-[10px] font-bold uppercase ${currentTab === t ? 'bg-cyan-500 text-black' : 'bg-slate-800 text-gray-400'}`}>
-                                                {t}
-                                            </button>
+                                    <button onClick={connectBluetooth} 
+                                        className={`w-full py-4 rounded-xl font-bold text-sm shadow-xl flex items-center justify-center gap-2 
+                                        ${btConnected ? 'bg-red-500/10 text-red-400 border border-red-500/50' : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white'}`}>
+                                        {btConnected ? 'DESCONECTAR' : 'CONECTAR AHORA'}
+                                    </button>
+                                </div>
+                                
+                                {/* TABS */}
+                                <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+                                    {['live', 'graphs', 'diesel'].map(t => (
+                                        <button key={t} onClick={() => setCurrentTab(t)} 
+                                            className={`px-5 py-2 rounded-lg text-[10px] font-bold uppercase ${currentTab === t ? 'bg-cyan-500 text-black' : 'bg-slate-800 text-gray-400'}`}>
+                                            {t}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* DATOS EN VIVO */}
+                                {currentTab === 'live' && (
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="col-span-2 bg-slate-900 p-4 rounded-2xl border border-cyan-500/20">
+                                            <div className="text-xs text-cyan-400 font-bold mb-1">REVOLUCIONES (RPM)</div>
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-5xl font-black text-white font-mono">{Math.floor(liveData.rpm)}</span>
+                                                <span className="text-xs text-gray-500">rpm</span>
+                                            </div>
+                                            <div className="w-full h-2 bg-slate-800 rounded-full mt-2 overflow-hidden">
+                                                <div className="h-full bg-cyan-500" style={{width: `${Math.min(liveData.rpm / 70, 100)}%`}}></div>
+                                            </div>
+                                        </div>
+
+                                        {[
+                                            {l: 'TEMPERATURA', v: Math.floor(liveData.temp), u: '°C', c: 'text-orange-400', icon: 'Thermometer'},
+                                            {l: 'VOLTAJE', v: liveData.volt.toFixed(1), u: 'V', c: 'text-yellow-400', icon: 'Battery'},
+                                            {l: 'MAF', v: liveData.maf.toFixed(1), u: 'g/s', c: 'text-green-400', icon: 'Wind'},
+                                            {l: 'PRESIÓN RIEL', v: Math.floor(liveData.railPressure), u: 'bar', c: 'text-purple-400', icon: 'Activity'}
+                                        ].map((s, i) => (
+                                            <div key={i} className="bg-slate-900 p-3 rounded-xl border border-white/5">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="text-[9px] text-gray-400 font-bold">{s.l}</div>
+                                                    <Icon name={s.icon} className={`w-3 h-3 ${s.c}`} />
+                                                </div>
+                                                <span className={`text-2xl font-mono font-black ${s.c}`}>{s.v}</span>
+                                                <span className="text-[10px] text-gray-500 ml-1">{s.u}</span>
+                                            </div>
                                         ))}
                                     </div>
+                                )}
 
-                                    {/* DATOS EN VIVO */}
-                                    {currentTab === 'live' && (
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="col-span-2 bg-slate-900 p-4 rounded-2xl border border-cyan-500/20">
-                                                <div className="text-xs text-cyan-400 font-bold mb-1">REVOLUCIONES (RPM)</div>
-                                                <div className="flex items-baseline gap-2">
-                                                    <span className="text-5xl font-black text-white font-mono">{Math.floor(liveData.rpm)}</span>
-                                                    <span className="text-xs text-gray-500">rpm</span>
-                                                </div>
-                                                <div className="w-full h-2 bg-slate-800 rounded-full mt-2 overflow-hidden">
-                                                    <div className="h-full bg-cyan-500" style={{width: `${Math.min(liveData.rpm / 70, 100)}%`}}></div>
-                                                </div>
+                                {/* GRÁFICAS (CON PROTECCIÓN ANTI-ERROR ROJO) */}
+                                {currentTab === 'graphs' && (
+                                    <div className="bg-slate-900 p-3 rounded-2xl border border-cyan-500/20">
+                                        <h3 className="text-xs font-bold mb-4 text-cyan-400">OSCILOSCOPIO RPM</h3>
+                                        
+                                        {hasGraphs ? (
+                                            <div style={{ width: '100%', height: 250 }}>
+                                                <ResponsiveContainer>
+                                                    <LineChart data={graphData}>
+                                                        <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
+                                                        <XAxis dataKey="time" style={{fontSize: 9}} stroke="#475569" />
+                                                        <YAxis style={{fontSize: 9}} stroke="#475569" domain={['auto', 'auto']} />
+                                                        <Tooltip contentStyle={{backgroundColor: '#0f172a', borderColor: '#06b6d4', fontSize: '12px'}} />
+                                                        <Line type="monotone" dataKey="rpm" stroke="#06b6d4" strokeWidth={3} dot={false} />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
                                             </div>
-
-                                            {[
-                                                {l: 'TEMPERATURA', v: Math.floor(liveData.temp), u: '°C', c: 'text-orange-400', icon: 'Thermometer'},
-                                                {l: 'VOLTAJE', v: liveData.volt.toFixed(1), u: 'V', c: 'text-yellow-400', icon: 'Battery'},
-                                                {l: 'MAF', v: liveData.maf.toFixed(1), u: 'g/s', c: 'text-green-400', icon: 'Wind'},
-                                                {l: 'PRESIÓN RIEL', v: Math.floor(liveData.railPressure), u: 'bar', c: 'text-purple-400', icon: 'Activity'}
-                                            ].map((s, i) => (
-                                                <div key={i} className="bg-slate-900 p-3 rounded-xl border border-white/5">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div className="text-[9px] text-gray-400 font-bold">{s.l}</div>
-                                                        <Icon name={s.icon} className={`w-3 h-3 ${s.c}`} />
-                                                    </div>
-                                                    <span className={`text-2xl font-mono font-black ${s.c}`}>{s.v}</span>
-                                                    <span className="text-[10px] text-gray-500 ml-1">{s.u}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* GRÁFICAS (CON PROTECCIÓN) */}
-                                    {currentTab === 'graphs' && (
-                                        <div className="bg-slate-900 p-3 rounded-2xl border border-cyan-500/20">
-                                            <h3 className="text-xs font-bold mb-4 text-cyan-400">OSCILOSCOPIO RPM</h3>
-                                            
-                                            {hasGraphs ? (
-                                                <div style={{ width: '100%', height: 250 }}>
-                                                    <ResponsiveContainer>
-                                                        <LineChart data={graphData}>
-                                                            <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
-                                                            <XAxis dataKey="time" style={{fontSize: 9}} stroke="#475569" />
-                                                            <YAxis style={{fontSize: 9}} stroke="#475569" domain={['auto', 'auto']} />
-                                                            <Tooltip contentStyle={{backgroundColor: '#0f172a', borderColor: '#06b6d4', fontSize: '12px'}} />
-                                                            <Line type="monotone" dataKey="rpm" stroke="#06b6d4" strokeWidth={3} dot={false} />
-                                                        </LineChart>
-                                                    </ResponsiveContainer>
-                                                </div>
-                                            ) : (
-                                                <div className="text-center py-10 text-gray-500 border border-dashed border-gray-700 rounded-xl">
-                                                    <Icon name="AlertTriangle" className="mx-auto mb-2 text-yellow-500" />
-                                                    <p>Librería de gráficas no disponible.</p>
-                                                    <p className="text-[10px]">Revisa tu conexión a internet.</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* INVENTARIO */}
-                            {currentView === 'inventory' && (
-                                <div className="space-y-3">
-                                    <div className="relative">
-                                        <input placeholder="Buscar..." className="w-full p-4 pl-10 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none" />
-                                        <Icon name="Search" className="absolute left-3 top-4 text-gray-500 w-5 h-5" />
-                                    </div>
-                                    {inventory.map(p => (
-                                        <div key={p.id} className="bg-slate-900 p-4 rounded-xl border border-white/5 flex justify-between items-center">
-                                            <div>
-                                                <span className="text-[9px] font-bold bg-slate-800 px-2 py-1 rounded text-cyan-400">{p.cat}</span>
-                                                <div className="font-bold text-white mt-1">{p.nombre}</div>
+                                        ) : (
+                                            /* Esto se muestra si falla la librería, en vez del error rojo */
+                                            <div className="text-center py-10 text-gray-500 border border-dashed border-gray-700 rounded-xl">
+                                                <Icon name="AlertTriangle" className="mx-auto mb-2 text-yellow-500" />
+                                                <p>Gráfica no disponible por conexión.</p>
+                                                <p className="text-[10px] mt-1">El resto del escáner sigue funcionando.</p>
                                             </div>
-                                            <button onClick={() => addToCart(p)} className="bg-slate-800 p-3 rounded-lg text-white">
-                                                <Icon name="Plus" className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            
-                            {/* BOTON VOLVER */}
-                            {currentView !== 'home' && currentView !== 'scanner' && (
-                                <button onClick={() => setCurrentView('home')} className="fixed bottom-16 right-4 bg-slate-800 p-3 rounded-full shadow-lg border border-white/10 text-white z-40">
-                                    <Icon name="ArrowLeft" />
-                                </button>
-                            )}
-
-                        </div>
-
-                        {/* CARRITO */}
-                        {showCart && (
-                            <div className="fixed inset-0 bg-black/95 z-[60] p-4 flex flex-col">
-                                <div className="flex justify-between border-b border-gray-800 pb-4 mb-4">
-                                    <h2 className="font-bold text-white text-lg">CARRITO</h2>
-                                    <button onClick={() => setShowCart(false)} className="text-gray-400"><Icon name="X" /></button>
-                                </div>
-                                <div className="flex-1 overflow-y-auto space-y-2">
-                                    {cart.map((c, i) => (
-                                        <div key={i} className="flex justify-between items-center p-3 bg-slate-900 rounded-lg">
-                                            <span className="text-sm font-medium">{c.nombre}</span>
-                                            <span className="text-green-400 font-mono font-bold">${c.precio}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="mt-4 bg-slate-900 p-4 rounded-xl">
-                                    <div className="flex justify-between text-xl font-black text-white mb-4">
-                                        <span>TOTAL</span>
-                                        <span className="text-green-400">${cart.reduce((a,b)=>a+b.precio,0)}</span>
+                                        )}
                                     </div>
-                                    <button onClick={sendWhatsApp} className="w-full bg-green-600 py-4 rounded-xl font-bold text-white">ENVIAR WHATSAPP</button>
+                                )}
+                            </div>
+                        )}
+
+                        {/* INVENTARIO */}
+                        {currentView === 'inventory' && (
+                            <div className="space-y-3">
+                                <div className="relative">
+                                    <input placeholder="Buscar..." className="w-full p-4 pl-10 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none" />
+                                    <Icon name="Search" className="absolute left-3 top-4 text-gray-500 w-5 h-5" />
                                 </div>
+                                {inventory.map(p => (
+                                    <div key={p.id} className="bg-slate-900 p-4 rounded-xl border border-white/5 flex justify-between items-center">
+                                        <div>
+                                            <span className="text-[9px] font-bold bg-slate-800 px-2 py-1 rounded text-cyan-400">{p.cat}</span>
+                                            <div className="font-bold text-white mt-1">{p.nombre}</div>
+                                        </div>
+                                        <button onClick={() => addToCart(p)} className="bg-slate-800 p-3 rounded-lg text-white">
+                                            <Icon name="Plus" className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
                         )}
                         
-                        <div className="fixed bottom-0 w-full bg-slate-950/90 backdrop-blur p-3 text-center z-30 border-t border-white/5">
-                            <p className="text-[10px] text-gray-500">PROPART v3.0 | BY KEV</p>
-                        </div>
-                    </div>
-                );
-            };
+                        {/* VOLVER */}
+                        {currentView !== 'home' && currentView !== 'scanner' && (
+                            <button onClick={() => setCurrentView('home')} className="fixed bottom-16 right-4 bg-slate-800 p-3 rounded-full shadow-lg border border-white/10 text-white z-40">
+                                <Icon name="ArrowLeft" />
+                            </button>
+                        )}
 
-            const root = createRoot(document.getElementById('root'));
-            root.render(<PropartDiagnostic />);
-            
-        } catch (error) {
-            console.error(error);
-            // Si algo falla, mostramos el error de forma amigable en lugar de pantalla negra
-            document.getElementById('root').style.display = 'none';
-            document.getElementById('error-display').style.display = 'block';
-            document.getElementById('error-message').innerText = error.message;
-        }
+                    </div>
+
+                    {/* CARRITO */}
+                    {showCart && (
+                        <div className="fixed inset-0 bg-black/95 z-[60] p-4 flex flex-col">
+                            <div className="flex justify-between border-b border-gray-800 pb-4 mb-4">
+                                <h2 className="font-bold text-white text-lg">CARRITO</h2>
+                                <button onClick={() => setShowCart(false)} className="text-gray-400"><Icon name="X" /></button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto space-y-2">
+                                {cart.map((c, i) => (
+                                    <div key={i} className="flex justify-between items-center p-3 bg-slate-900 rounded-lg">
+                                        <span className="text-sm font-medium">{c.nombre}</span>
+                                        <span className="text-green-400 font-mono font-bold">${c.precio}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-4 bg-slate-900 p-4 rounded-xl">
+                                <div className="flex justify-between text-xl font-black text-white mb-4">
+                                    <span>TOTAL</span>
+                                    <span className="text-green-400">${cart.reduce((a,b)=>a+b.precio,0)}</span>
+                                </div>
+                                <button onClick={sendWhatsApp} className="w-full bg-green-600 py-4 rounded-xl font-bold text-white">ENVIAR WHATSAPP</button>
+                            </div>
+                        </div>
+                    )}
+                    
+                    <div className="fixed bottom-0 w-full bg-slate-950/90 backdrop-blur p-3 text-center z-30 border-t border-white/5">
+                        <p className="text-[10px] text-gray-500">PROPART v4.0 STABLE | BY KEV</p>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<PropartDiagnostic />);
     </script>
 </body>
 </html>
