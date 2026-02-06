@@ -1025,48 +1025,92 @@
         async function initELM327() {
             log('⚙️ Inicializando ELM327...', 'info');
             
-            const commands = [
-                OBD.RESET,
-                OBD.ECHO_OFF,
-                OBD.LINEFEED_OFF,
-                OBD.SPACES_OFF,
-                OBD.HEADERS_OFF,
-                OBD.ADAPTIVE_TIMING,
-                OBD.PROTOCOL_AUTO
-            ];
-
-            for (const cmd of commands) {
-                try {
-                    await sendCommand(cmd);
-                    await sleep(150);
-                } catch (e) {
-                    console.log('Init cmd warning:', e);
-                }
+            try {
+                // Reset
+                log('  → Reset...', 'info');
+                await sendCommand('ATZ');
+                await sleep(2000); // Reset necesita más tiempo
+                
+                // Echo OFF
+                log('  → Echo OFF...', 'info');
+                await sendCommand('ATE0');
+                await sleep(200);
+                
+                // Linefeed OFF
+                log('  → Linefeed OFF...', 'info');
+                await sendCommand('ATL0');
+                await sleep(200);
+                
+                // Spaces OFF (importante para parsing)
+                log('  → Spaces OFF...', 'info');
+                await sendCommand('ATS0');
+                await sleep(200);
+                
+                // Headers OFF
+                log('  → Headers OFF...', 'info');
+                await sendCommand('ATH0');
+                await sleep(200);
+                
+                // Adaptive Timing Auto
+                log('  → Adaptive Timing...', 'info');
+                await sendCommand('ATAT1');
+                await sleep(200);
+                
+                // Set Timeout
+                log('  → Set Timeout...', 'info');
+                await sendCommand('ATST64');
+                await sleep(200);
+                
+                // Auto Protocol
+                log('  → Auto Protocol...', 'info');
+                await sendCommand('ATSP0');
+                await sleep(500);
+                
+                log('✅ ELM327 inicializado correctamente', 'success');
+                addAIMessage('claude', 'Dispositivo inicializado. Ahora puedes leer datos del vehículo. 👍');
+                
+            } catch (error) {
+                log(`⚠️ Error en inicialización: ${error.message}`, 'warning');
+                addAIMessage('claude', `Inicialización completada con advertencias. Puedes intentar leer datos de todos modos.`);
             }
-
-            log('✅ ELM327 inicializado', 'success');
         }
 
         function handleData(event) {
             const decoder = new TextDecoder();
-            receiveBuffer += decoder.decode(event.target.value);
+            const chunk = decoder.decode(event.target.value);
+            receiveBuffer += chunk;
+            console.log('RX:', chunk); // Debug
         }
 
-        async function sendCommand(cmd, timeout = 2000) {
+        async function sendCommand(cmd, timeout = 5000) {
             if (!characteristic) throw new Error('No conectado');
 
+            // Limpiar buffer antes de enviar
             receiveBuffer = '';
-            const encoder = new TextEncoder();
-            await characteristic.writeValue(encoder.encode(cmd));
             
+            // Enviar comando
+            const encoder = new TextEncoder();
+            const cmdToSend = cmd.trim() + '\r';
+            await characteristic.writeValue(encoder.encode(cmdToSend));
+            console.log('TX:', cmdToSend.replace('\r', '\\r'));
+            
+            // Esperar respuesta con timeout más largo
             const start = Date.now();
             while (receiveBuffer.length === 0) {
-                if (Date.now() - start > timeout) throw new Error('Timeout');
+                if (Date.now() - start > timeout) {
+                    throw new Error('Timeout esperando respuesta');
+                }
                 await sleep(50);
             }
             
-            await sleep(150);
-            return receiveBuffer.trim();
+            // Esperar a que termine de llegar toda la respuesta
+            // Los adaptadores chinos envían datos en múltiples paquetes
+            await sleep(300);
+            
+            // Limpiar y retornar
+            const response = receiveBuffer.trim();
+            console.log('Respuesta completa:', response);
+            return response;
         }
 
         function sleep(ms) {
@@ -1074,64 +1118,139 @@
         }
 
         function parseOBD(response, bytes = 1) {
-            response = response.replace(/\s/g, '').replace(/>/g, '');
-            const match = response.match(/41[0-9A-F]{2}([0-9A-F]+)/i);
-            if (!match) return null;
+            // Limpiar respuesta de caracteres extra
+            response = response.replace(/\r/g, '').replace(/\n/g, '').replace(/\s/g, '').replace(/>/g, '');
             
-            const hex = match[1];
-            if (bytes === 1) return parseInt(hex.substring(0, 2), 16);
-            if (bytes === 2) return parseInt(hex.substring(0, 2), 16) * 256 + parseInt(hex.substring(2, 4), 16);
-            return hex;
+            console.log('Parseando:', response);
+            
+            // Buscar respuesta válida (41 = respuesta a modo 01)
+            const match = response.match(/41([0-9A-F]{2})([0-9A-F]+)/i);
+            if (!match) {
+                console.log('No match encontrado en:', response);
+                return null;
+            }
+            
+            const pid = match[1];
+            const data = match[2];
+            
+            console.log('PID:', pid, 'Data:', data);
+            
+            if (bytes === 1) {
+                // 1 byte = 2 caracteres hex
+                if (data.length < 2) return null;
+                return parseInt(data.substring(0, 2), 16);
+            } else if (bytes === 2) {
+                // 2 bytes = 4 caracteres hex
+                if (data.length < 4) return null;
+                const highByte = parseInt(data.substring(0, 2), 16);
+                const lowByte = parseInt(data.substring(2, 4), 16);
+                return (highByte * 256) + lowByte;
+            }
+            
+            return data;
         }
 
         // Funciones de lectura de datos
         async function readBasicData() {
             if (!isConnected) {
-                addAIMessage('claude', 'Primero necesitas conectar el dispositivo ELM327. ¿Necesitas ayuda?');
+                addAIMessage('claude', 'Primero necesitas conectar el dispositivo. ¿Necesitas ayuda?');
                 return;
             }
 
             try {
-                log('📊 Leyendo datos básicos...', 'info');
+                log('📊 Leyendo parámetros básicos...', 'info');
 
                 // RPM
                 try {
+                    log('  → RPM...', 'info');
                     const rpm = parseOBD(await sendCommand(OBD.RPM), 2);
-                    if (rpm !== null) document.getElementById('rpm').textContent = Math.round(rpm / 4);
-                } catch (e) { log('Error RPM', 'error'); }
-                await sleep(100);
+                    if (rpm !== null) {
+                        document.getElementById('rpm').textContent = Math.round(rpm / 4);
+                        log(`  ✓ RPM: ${Math.round(rpm / 4)}`, 'success');
+                    } else {
+                        log('  ✗ RPM: Sin datos', 'warning');
+                        document.getElementById('rpm').textContent = '----';
+                    }
+                } catch (e) {
+                    log(`  ✗ RPM Error: ${e.message}`, 'error');
+                    document.getElementById('rpm').textContent = 'ERR';
+                }
+                await sleep(200);
 
-                // Speed
+                // Velocidad
                 try {
+                    log('  → Velocidad...', 'info');
                     const speed = parseOBD(await sendCommand(OBD.SPEED), 1);
-                    if (speed !== null) document.getElementById('speed').textContent = speed;
-                } catch (e) { log('Error velocidad', 'error'); }
-                await sleep(100);
+                    if (speed !== null) {
+                        document.getElementById('speed').textContent = speed;
+                        log(`  ✓ Velocidad: ${speed} km/h`, 'success');
+                    } else {
+                        log('  ✗ Velocidad: Sin datos', 'warning');
+                        document.getElementById('speed').textContent = '----';
+                    }
+                } catch (e) {
+                    log(`  ✗ Velocidad Error: ${e.message}`, 'error');
+                    document.getElementById('speed').textContent = 'ERR';
+                }
+                await sleep(200);
 
-                // Temperature
+                // Temperatura
                 try {
+                    log('  → Temperatura...', 'info');
                     const temp = parseOBD(await sendCommand(OBD.COOLANT_TEMP), 1);
-                    if (temp !== null) document.getElementById('temp').textContent = temp - 40;
-                } catch (e) { log('Error temperatura', 'error'); }
-                await sleep(100);
+                    if (temp !== null) {
+                        const tempC = temp - 40;
+                        document.getElementById('temp').textContent = tempC;
+                        log(`  ✓ Temperatura: ${tempC}°C`, 'success');
+                    } else {
+                        log('  ✗ Temperatura: Sin datos', 'warning');
+                        document.getElementById('temp').textContent = '----';
+                    }
+                } catch (e) {
+                    log(`  ✗ Temperatura Error: ${e.message}`, 'error');
+                    document.getElementById('temp').textContent = 'ERR';
+                }
+                await sleep(200);
 
-                // Voltage
+                // Voltaje
                 try {
+                    log('  → Voltaje...', 'info');
                     const voltResp = await sendCommand(OBD.VOLTAGE);
-                    const match = voltResp.match(/([0-9.]+)V/);
-                    if (match) document.getElementById('voltage').textContent = match[1];
-                } catch (e) { log('Error voltaje', 'error'); }
-                await sleep(100);
+                    const match = voltResp.match(/([0-9.]+)V?/i);
+                    if (match) {
+                        document.getElementById('voltage').textContent = parseFloat(match[1]).toFixed(1);
+                        log(`  ✓ Voltaje: ${match[1]}V`, 'success');
+                    } else {
+                        log('  ✗ Voltaje: Sin datos', 'warning');
+                        document.getElementById('voltage').textContent = '----';
+                    }
+                } catch (e) {
+                    log(`  ✗ Voltaje Error: ${e.message}`, 'error');
+                    document.getElementById('voltage').textContent = 'ERR';
+                }
+                await sleep(200);
 
-                // Load
+                // Carga
                 try {
+                    log('  → Carga...', 'info');
                     const load = parseOBD(await sendCommand(OBD.ENGINE_LOAD), 1);
-                    if (load !== null) document.getElementById('load').textContent = ((load * 100) / 255).toFixed(1);
-                } catch (e) { log('Error carga', 'error'); }
-                await sleep(100);
+                    if (load !== null) {
+                        const loadPct = ((load * 100) / 255).toFixed(1);
+                        document.getElementById('load').textContent = loadPct;
+                        log(`  ✓ Carga: ${loadPct}%`, 'success');
+                    } else {
+                        log('  ✗ Carga: Sin datos', 'warning');
+                        document.getElementById('load').textContent = '----';
+                    }
+                } catch (e) {
+                    log(`  ✗ Carga Error: ${e.message}`, 'error');
+                    document.getElementById('load').textContent = 'ERR';
+                }
+                await sleep(200);
 
-                // Throttle
+                // Acelerador
                 try {
+                    log('  → Acelerador...', 'info');
                     const throttle = parseOBD(await sendCommand(OBD.THROTTLE), 1);
                     if (throttle !== null) document.getElementById('throttle').textContent = ((throttle * 100) / 255).toFixed(1);
                 } catch (e) { log('Error acelerador', 'error'); }
