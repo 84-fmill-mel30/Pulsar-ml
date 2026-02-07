@@ -1,342 +1,435 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Satellite, 
-  Activity, 
-  Cpu, 
-  Zap, 
-  Trash2, 
-  Terminal as TermIcon, 
-  Box, 
-  Info, 
-  ChevronRight, 
-  AlertCircle 
-} from 'lucide-react';
-import * as THREE from 'three';
-
-// --- CONFIGURACIÓN TÉCNICA MASTER ---
-const WINNING_UUID = '000018f0-0000-1000-8000-00805f9b34fb';
-const BACKUP_UUIDS = [
-  '0000fff0-0000-1000-8000-00805f9b34fb',
-  '49535343-fe7d-4ae5-8fa9-9fafd205e455',
-  '0000ffe0-0000-1000-8000-00805f9b34fb'
-];
-
-export default function App() {
-  const [activeTab, setActiveTab] = useState('diag');
-  const [isConnected, setIsConnected] = useState(false);
-  const [logs, setLogs] = useState([{ time: new Date().toLocaleTimeString(), text: "Sistema Quantum V10.5 Listo. Socio Millán al mando.", type: "sys" }]);
-  const [dtcs, setDtcs] = useState([]);
-  const [deviceInfo, setDeviceInfo] = useState({ name: "Desconectado", battery: "0.0V" });
-  const [isScanning, setIsScanning] = useState(false);
-  
-  const obdCharRef = useRef(null);
-  const bleDeviceRef = useRef(null);
-  const threeRootRef = useRef(null);
-  const consoleEndRef = useRef(null);
-
-  // Auto-scroll para la terminal
-  useEffect(() => {
-    consoleEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [logs]);
-
-  // --- MOTOR 3D HOLOGRÁFICO ---
-  useEffect(() => {
-    if (activeTab === 'lab' && threeRootRef.current) {
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(75, threeRootRef.current.clientWidth / 300, 0.1, 1000);
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(threeRootRef.current.clientWidth, 300);
-      threeRootRef.current.appendChild(renderer.domElement);
-
-      const light = new THREE.PointLight(0x22d3ee, 5, 100);
-      light.position.set(10, 10, 10);
-      scene.add(light);
-      scene.add(new THREE.AmbientLight(0x404040, 2));
-
-      const geometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
-      const material = new THREE.MeshPhongMaterial({ 
-        color: 0x22d3ee, 
-        wireframe: true, 
-        transparent: true, 
-        opacity: 0.8,
-        emissive: 0x22d3ee,
-        emissiveIntensity: 0.5
-      });
-      const torusKnot = new THREE.Mesh(geometry, material);
-      scene.add(torusKnot);
-
-      camera.position.z = 4;
-
-      const animate = () => {
-        requestAnimationFrame(animate);
-        torusKnot.rotation.x += 0.01;
-        torusKnot.rotation.y += 0.01;
-        renderer.render(scene, camera);
-      };
-      animate();
-
-      return () => {
-        if (threeRootRef.current) threeRootRef.current.innerHTML = '';
-      };
-    }
-  }, [activeTab]);
-
-  // --- LÓGICA DE COMUNICACIÓN BLUETOOTH ---
-  const addLog = (text, type = "sys") => {
-    setLogs(prev => [...prev, { time: new Date().toLocaleTimeString(), text, type }]);
-  };
-
-  const connectDevice = async () => {
-    try {
-      addLog("Iniciando Discovery Loop Cuántico...", "sys");
-      const device = await navigator.bluetooth.requestDevice({
-        acceptAllDevices: true,
-        optionalServices: [WINNING_UUID, ...BACKUP_UUIDS]
-      });
-
-      addLog(`Vinculado con: ${device.name}`, "sys");
-      const server = await device.gatt.connect();
-      const services = await server.getPrimaryServices();
-      
-      let foundChar = null;
-      for (const s of services) {
-        const chars = await s.getCharacteristics();
-        for (const c of chars) {
-          if (c.properties.write || c.properties.writeWithoutResponse) {
-            foundChar = c;
-            break;
-          }
-        }
-        if (foundChar) break;
-      }
-
-      if (!foundChar) throw new Error("No se halló canal de datos abierto.");
-
-      if (foundChar.properties.notify) {
-        await foundChar.startNotifications();
-        foundChar.addEventListener('characteristicvaluechanged', (e) => {
-          const val = new TextDecoder().decode(e.target.value).trim();
-          if (val) addLog(val, "rx");
-        });
-      }
-
-      obdCharRef.current = foundChar;
-      bleDeviceRef.current = device;
-      setIsConnected(true);
-      setDeviceInfo(prev => ({ ...prev, name: device.name }));
-      addLog("Enlace VLink Establecido. Mandando ATI.", "sys");
-      await sendCommand("ATI");
-    } catch (err) {
-      addLog(`Error: ${err.message}`, "err");
-    }
-  };
-
-  const sendCommand = async (cmd) => {
-    if (!obdCharRef.current) return;
-    try {
-      await obdCharRef.current.writeValue(new TextEncoder().encode(cmd + "\r"));
-      addLog(cmd, "tx");
-    } catch (e) {
-      addLog("Fallo en canal de datos.", "err");
-    }
-  };
-
-  const readDTC = async () => {
-    if (!isConnected) return;
-    setIsScanning(true);
-    addLog("Pidiendo códigos de falla (Modo 03)...", "sys");
-    await sendCommand("03");
-    // Simulacro de decodificación para visualización si no hay respuesta real inmediata
-    setTimeout(() => {
-      setIsScanning(false);
-      // Aquí se procesaría la respuesta real RX
-    }, 2000);
-  };
-
-  // --- COMPONENTES DE UI ---
-  const NavButton = ({ id, label, icon: Icon }) => (
-    <button 
-      onClick={() => setActiveTab(id)}
-      className={`flex-1 flex flex-col items-center py-3 rounded-2xl transition-all ${activeTab === id ? 'bg-cyan-500/20 text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500 hover:bg-slate-800'}`}
-    >
-      <Icon size={18} className="mb-1" />
-      <span className="text-[10px] font-black uppercase tracking-widest italic">{label}</span>
-    </button>
-  );
-
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30">
-      
-      {/* Header Premium */}
-      <header className="p-4 bg-slate-900/50 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg shadow-lg shadow-cyan-500/20">
-              <Zap size={20} className="text-slate-950" />
-            </div>
-            <div>
-              <h1 className="text-xl font-black tracking-tighter italic uppercase leading-none">
-                Propart <span className="text-cyan-400">Master</span>
-              </h1>
-              <p className="text-[9px] font-bold text-slate-500 tracking-[0.3em] uppercase mt-1">Socio: Millán | V10.5 Quantum</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3 bg-slate-950/50 px-4 py-2 rounded-full border border-white/5 shadow-inner">
-            <div className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${isConnected ? 'bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse' : 'bg-slate-700'}`}></div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-              {isConnected ? 'Link Active' : 'Offline'}
-            </span>
-          </div>
-        </div>
-
-        <nav className="max-w-md mx-auto flex gap-2 mt-4 bg-slate-950/50 p-1 rounded-2xl border border-white/5">
-          <NavButton id="diag" label="Escanear" icon={Activity} />
-          <NavButton id="bench" label="Test Banco" icon={Cpu} />
-          <NavButton id="lab" label="3D Lab" icon={Box} />
-        </nav>
-      </header>
-
-      <main className="flex-grow p-4 max-w-4xl mx-auto w-full space-y-6 overflow-y-auto">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PROPART MASTER HUB V12 | TITANIUM</title>
+    
+    <!-- ARSENAL TECNOLÓGICO -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        :root { --neon: #06b6d4; --bg: #020617; --card: #0f172a; --success: #10b981; --warn: #f59e0b; --danger: #f43f5e; }
         
-        {activeTab === 'diag' && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-            <div className="grid grid-cols-2 gap-4">
-              <button 
-                onClick={connectDevice}
-                className={`p-6 rounded-3xl flex flex-col items-center gap-3 border transition-all shadow-xl ${isConnected ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-400' : 'bg-slate-900 border-white/5 text-slate-400'}`}
-              >
-                <Satellite size={28} className={isConnected ? 'animate-pulse' : ''} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Sincronizar Vlink</span>
-              </button>
-              
-              <button 
-                onClick={readDTC}
-                disabled={!isConnected}
-                className="bg-slate-900 border border-white/5 p-6 rounded-3xl flex flex-col items-center gap-3 text-amber-500 shadow-xl disabled:opacity-30 disabled:grayscale transition-all hover:bg-slate-800"
-              >
-                <Cpu size={28} className={isScanning ? 'animate-spin' : ''} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Leer Fallas (DTC)</span>
-              </button>
-            </div>
+        body { 
+            background-color: var(--bg); 
+            color: #e2e8f0; 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            overflow: hidden; 
+            height: 100vh;
+            margin: 0;
+        }
 
-            <div className="bg-slate-900/50 rounded-3xl border border-white/5 p-6 shadow-2xl">
-              <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 italic">
-                <AlertCircle size={14} className="text-rose-500" />
-                Códigos en Memoria ECU
-              </h3>
-              
-              {dtcs.length === 0 ? (
-                <div className="py-12 border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-700">
-                  <Info size={40} className="mb-2 opacity-20" />
-                  <p className="text-[10px] font-bold uppercase italic tracking-widest">Sin datos de diagnóstico</p>
+        /* UI Premium Glassmorphism */
+        .glass { 
+            background: rgba(15, 23, 42, 0.95); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid rgba(255,255,255,0.08); 
+            border-radius: 1.5rem; 
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+        }
+        
+        .active-tab { 
+            background: rgba(6, 182, 212, 0.15); 
+            border-bottom: 2px solid var(--neon); 
+            color: var(--neon); 
+        }
+
+        /* Botón Maestro de Sincronización */
+        .btn-sync { 
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%); 
+            color: white; 
+            font-weight: 900; 
+            letter-spacing: 1px;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+            transition: all 0.2s ease;
+        }
+        .btn-sync:active { transform: scale(0.96); filter: brightness(1.1); }
+
+        /* Terminal de Datos */
+        .terminal { 
+            background: rgba(0, 0, 0, 0.85); 
+            border: 1px solid rgba(6, 182, 212, 0.2); 
+            border-radius: 1rem; 
+            font-family: 'Consolas', monospace; 
+        }
+
+        /* Viewport 3D */
+        #hologram-viewport {
+            width: 100%;
+            height: 320px;
+            background: radial-gradient(circle at center, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+            border-radius: 1.5rem;
+            cursor: grab;
+        }
+        #hologram-viewport:active { cursor: grabbing; }
+
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        
+        @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(6, 182, 212, 0); } 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); } }
+        .status-live { animation: pulse-ring 2s infinite; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="flex flex-col select-none">
+
+    <!-- HEADER: Identidad Propart Master -->
+    <header class="glass mx-3 mt-3 p-4 flex flex-col items-center border-b border-white/5 sticky top-0 z-50">
+        <div class="flex items-center justify-between w-full">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-cyan-500 rounded-lg shadow-lg shadow-cyan-500/30 text-black font-black text-[10px]">V12</div>
+                <div class="leading-none">
+                    <h1 class="text-xl font-black italic tracking-tighter text-white">PROPART <span class="text-cyan-400">HUB</span></h1>
+                    <p class="text-[9px] font-bold text-slate-500 tracking-[0.3em] uppercase">SOCIO: MILLÁN</p>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {/* Mapeo de DTCs */}
-                </div>
-              )}
             </div>
-          </div>
-        )}
-
-        {activeTab === 'bench' && (
-          <div className="space-y-4 animate-in fade-in">
-            <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => sendCommand("ATI")} className="bg-slate-900 border border-white/5 p-5 rounded-2xl flex flex-col items-center gap-2 hover:bg-slate-800 transition-colors">
-                <Cpu size={20} className="text-emerald-400" />
-                <span className="text-[9px] font-black uppercase">Hardware Info</span>
-              </button>
-              <button onClick={() => sendCommand("ATRV")} className="bg-slate-900 border border-white/5 p-5 rounded-2xl flex flex-col items-center gap-2 hover:bg-slate-800 transition-colors">
-                <Zap size={20} className="text-amber-400" />
-                <span className="text-[9px] font-black uppercase">Leer Voltaje</span>
-              </button>
+            <!-- Indicador de Estado -->
+            <div class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-full border border-white/10">
+                <div id="bt-led" class="w-2 h-2 rounded-full bg-slate-600 transition-colors duration-300"></div>
+                <span id="bt-status" class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">OFFLINE</span>
             </div>
+        </div>
+        
+        <!-- Navegación Rápida -->
+        <nav class="flex mt-4 bg-slate-900/60 p-1 rounded-2xl border border-white/5 w-full gap-1">
+            <button onclick="switchTab('scan')" id="tab-scan-btn" class="flex-1 py-2.5 text-[10px] font-bold uppercase rounded-xl text-slate-400 transition-all active-tab">Escáner</button>
+            <button onclick="switchTab('bench')" id="tab-bench-btn" class="flex-1 py-2.5 text-[10px] font-bold uppercase rounded-xl text-slate-400 transition-all">Banqueo</button>
+            <button onclick="switchTab('3d')" id="tab-3d-btn" class="flex-1 py-2.5 text-[10px] font-bold uppercase rounded-xl text-slate-400 transition-all">Ingeniería 3D</button>
+        </nav>
+    </header>
 
-            <div className="terminal-box p-4 flex flex-col h-96 shadow-2xl">
-              <div className="flex justify-between items-center mb-3 border-b border-white/10 pb-2">
-                <span className="text-[10px] font-black text-cyan-400 uppercase italic flex items-center gap-2">
-                  <TermIcon size={12} />
-                  Quantum Engineering Log
-                </span>
-                <button 
-                  onClick={() => setLogs([])}
-                  className="text-[9px] text-slate-500 hover:text-white transition-colors"
-                >
-                  PURGAR
+    <main class="flex-grow overflow-y-auto custom-scroll p-4 space-y-6">
+
+        <!-- MÓDULO 1: ESCÁNER BT (LA LUPA DE MILLÁN) -->
+        <section id="content-scan" class="tab-content block space-y-4 fade-in">
+            <!-- Panel de Conexión -->
+            <div class="glass p-6 border border-cyan-500/20 text-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50"></div>
+                <h3 class="text-[10px] font-black text-cyan-400 uppercase tracking-[0.2em] mb-6">Protocolo de Enlace Seguro</h3>
+                
+                <button onclick="conectarScanner()" id="connectBtn" class="w-full py-5 btn-sync rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 mb-4">
+                    <i class="fas fa-satellite-dish animate-pulse"></i> Sincronizar vLink
                 </button>
-              </div>
-              <div className="flex-grow overflow-y-auto custom-scroll space-y-1 font-mono text-[11px]">
-                {logs.map((log, i) => (
-                  <div key={i} className="flex gap-2">
-                    <span className="text-slate-700 font-bold">[{log.time}]</span>
-                    <span className={
-                      log.type === 'tx' ? 'text-white font-bold italic' : 
-                      log.type === 'rx' ? 'text-cyan-400 font-black' : 
-                      log.type === 'err' ? 'text-rose-500' : 'text-slate-500'
-                    }>
-                      {log.type === 'tx' ? 'ENVIANDO > ' : log.type === 'rx' ? 'RECIBIDO < ' : 'ESTADO | '}
-                      {log.text}
-                    </span>
-                  </div>
-                ))}
-                <div ref={consoleEndRef} />
-              </div>
+                <p class="text-[9px] text-slate-500 font-bold italic">Soporte: iOS (ISSC) • Android • PC</p>
             </div>
-          </div>
-        )}
 
-        {activeTab === 'lab' && (
-          <div className="space-y-4 animate-in fade-in">
-            <div className="bg-slate-900 border border-cyan-500/20 rounded-3xl overflow-hidden shadow-2xl relative">
-              <div ref={threeRootRef} id="canvas-3d" />
-              <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
-                <p className="text-xs font-black text-white uppercase tracking-[0.4em] italic drop-shadow-md">Inspección Holográfica</p>
-              </div>
+            <!-- Botonera de Diagnóstico -->
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="sendAT('03')" class="glass py-4 border-l-4 border-amber-500 active:scale-95 transition-transform flex flex-col items-center gap-1">
+                    <i class="fas fa-microscope text-amber-500 text-lg"></i>
+                    <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">Leer DTCs</span>
+                </button>
+                <button onclick="sendAT('04')" class="glass py-4 border-l-4 border-rose-500 active:scale-95 transition-transform flex flex-col items-center gap-1">
+                    <i class="fas fa-trash-alt text-rose-500 text-lg"></i>
+                    <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">Borrar Fallas</span>
+                </button>
+            </div>
+
+            <!-- Terminal de Ingeniería -->
+            <div class="terminal p-4 flex flex-col h-72 shadow-2xl">
+                <div class="flex justify-between items-center mb-3 border-b border-white/10 pb-2">
+                    <span class="text-[10px] font-black text-cyan-400 uppercase italic">Flujo de Datos en Vivo</span>
+                    <button onclick="document.getElementById('console').innerHTML = ''" class="text-[9px] text-slate-500 hover:text-white font-bold uppercase transition-colors">Limpiar</button>
+                </div>
+                <div id="console" class="flex-grow font-mono text-[11px] overflow-y-auto custom-scroll space-y-1">
+                    <div class="text-slate-600 italic">> Sistema V12 Titanium Listo.</div>
+                    <div class="text-slate-600 italic">> Esperando enlace del socio Millán...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MÓDULO 2: BANQUEO (PRUEBAS EN CASA) -->
+        <section id="content-bench" class="tab-content hidden space-y-4 fade-in">
+            <div class="glass p-6 text-center border border-white/5">
+                <h2 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Pruebas de Hardware</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="sendAT('ATI')" class="p-4 bg-slate-900 rounded-xl border border-white/10 active:bg-slate-800">
+                        <span class="block text-emerald-400 font-black text-xl mb-1"><i class="fas fa-id-card"></i></span>
+                        <span class="text-[9px] text-slate-300 uppercase font-bold">ID Chip</span>
+                    </button>
+                    <button onclick="sendAT('ATRV')" class="p-4 bg-slate-900 rounded-xl border border-white/10 active:bg-slate-800">
+                        <span class="block text-amber-400 font-black text-xl mb-1"><i class="fas fa-bolt"></i></span>
+                        <span class="text-[9px] text-slate-300 uppercase font-bold">Voltaje</span>
+                    </button>
+                </div>
             </div>
             
-            <div className="bg-slate-900/50 p-5 rounded-2xl border border-white/5 border-l-4 border-amber-500">
-                <h4 className="text-[10px] font-black text-amber-500 uppercase italic">Referencia de Banqueo</h4>
-                <div className="mt-2 text-[11px] text-slate-300 space-y-1 font-medium">
-                  <p>• Pin 16: Alimentación (+) 12V Batería</p>
-                  <p>• Pin 04: Tierra (-) Chasis</p>
-                  <p>• Pin 05: Tierra (-) Señal</p>
+            <div class="glass p-5 border-l-4 border-cyan-500">
+                <h4 class="font-black text-xs text-cyan-400 uppercase italic mb-2">Referencia de Pines</h4>
+                <div class="flex justify-between items-center text-[10px] text-slate-300">
+                    <span>Pin 16: <b class="text-white">12V (+)</b></span>
+                    <span>Pin 4/5: <b class="text-white">Tierra (-)</b></span>
                 </div>
             </div>
-          </div>
-        )}
+        </section>
 
-      </main>
+        <!-- MÓDULO 3: LABORATORIO 3D (HOLOGRAMAS) -->
+        <section id="content-3d" class="tab-content hidden space-y-4 fade-in">
+            <div class="flex justify-between items-center px-2">
+                <h2 class="text-xs font-black uppercase tracking-widest text-slate-400">Visor de Ingeniería</h2>
+                <span class="text-[9px] text-cyan-400 font-bold uppercase animate-pulse">3D Render Active</span>
+            </div>
 
-      {/* Footer Command Line */}
-      <footer className="p-4 bg-slate-900 border-t border-white/5 sticky bottom-0 z-50">
-        <div className="max-w-4xl mx-auto flex gap-2">
-          <input 
-            type="text" 
-            placeholder="Enviar AT o HEX Manual (Ej: 03)..."
-            className="flex-grow bg-slate-950 border border-white/10 rounded-2xl px-5 py-3.5 text-xs text-white outline-none focus:ring-1 focus:ring-cyan-500 transition-all font-bold uppercase placeholder:text-slate-800"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                sendCommand(e.currentTarget.value.toUpperCase());
-                e.currentTarget.value = '';
-              }
-            }}
-          />
-          <button 
-            onClick={() => {
-              const input = document.querySelector('input');
-              sendCommand(input.value.toUpperCase());
-              input.value = '';
-            }}
-            className="bg-cyan-600 p-4 rounded-2xl text-slate-950 active:scale-90 transition-transform shadow-lg shadow-cyan-900/20"
-          >
-            <ChevronRight size={18} />
-          </button>
+            <div class="glass overflow-hidden relative border border-cyan-500/20 shadow-2xl">
+                <div id="hologram-viewport"></div>
+                <div class="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
+                    <p id="proj-name" class="text-[10px] font-black text-white uppercase tracking-[0.3em] drop-shadow-md">Cargando Modelo...</p>
+                </div>
+            </div>
+
+            <div class="flex gap-2 overflow-x-auto pb-2">
+                <button onclick="update3D('generator')" class="flex-shrink-0 px-4 py-3 glass border border-white/10 active:bg-slate-800">
+                    <span class="text-[9px] font-bold text-cyan-400 uppercase">Generador</span>
+                </button>
+                <button onclick="update3D('iron')" class="flex-shrink-0 px-4 py-3 glass border border-white/10 active:bg-slate-800">
+                    <span class="text-[9px] font-bold text-amber-400 uppercase">Cautín</span>
+                </button>
+                <button onclick="update3D('canbus')" class="flex-shrink-0 px-4 py-3 glass border border-white/10 active:bg-slate-800">
+                    <span class="text-[9px] font-bold text-emerald-400 uppercase">Bus CAN</span>
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER: COMANDOS MANUALES -->
+    <footer class="p-4 glass border-t border-white/5 sticky bottom-0 mx-3 mb-3 backdrop-blur-xl z-50">
+        <div class="flex gap-2 max-w-3xl mx-auto">
+            <input type="text" id="cmdInput" placeholder="CMD HEX/AT..." class="flex-grow bg-slate-950 border border-slate-700 rounded-xl px-5 py-3 text-white text-xs outline-none focus:ring-1 focus:ring-cyan-500 font-mono uppercase tracking-wider">
+            <button onclick="sendManual()" class="bg-cyan-600 px-6 rounded-xl flex items-center justify-center active:scale-90 transition-transform shadow-lg shadow-cyan-900/30">
+                <i class="fas fa-paper-plane text-white text-xs"></i>
+            </button>
         </div>
-        <p className="text-center text-[7px] text-slate-700 font-bold uppercase tracking-[0.5em] mt-3 italic italic">
-          JULS AI SPECIALIST | PROPART DIAGNOSTIC MASTER © 2026 | SOCIO MILLÁN
-        </p>
-      </footer>
-    </div>
-  );
-}
+    </footer>
+
+    <!-- SCRIPT MAESTRO -->
+    <script>
+        // --- MOTOR BLUETOOTH "TITANIUM LINK" ---
+        let obdChar = null;
+        let bleDevice = null;
+        
+        // UUIDs Maestros (El 18f0 es la clave para tu vLink)
+        const UUIDS = [
+            '000018f0-0000-1000-8000-00805f9b34fb', // Priority 1: Generic OBDII / iOS vLink
+            '0000fff0-0000-1000-8000-00805f9b34fb', // Priority 2: Standard vGate
+            '49535343-fe7d-4ae5-8fa9-9fafd205e455', // Priority 3: ISSC Protocol
+            '0000ffe0-0000-1000-8000-00805f9b34fb'  // Priority 4: Serial BLE
+        ];
+
+        function log(msg, type = 'sys') {
+            const consoleEl = document.getElementById('console');
+            const time = new Date().toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' });
+            let color = 'text-slate-500';
+            let prefix = 'SYS';
+
+            if (type === 'tx') { color = 'text-white font-bold'; prefix = 'TX >'; }
+            if (type === 'rx') { color = 'text-cyan-400 font-bold'; prefix = 'RX <'; }
+            
+            const entry = document.createElement('div');
+            entry.className = "flex gap-2 text-[10px] hover:bg-white/5 p-0.5 rounded";
+            entry.innerHTML = `<span class="text-slate-600 font-mono">[${time}]</span><span class="${color} font-mono">${prefix} ${msg}</span>`;
+            
+            consoleEl.appendChild(entry);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        async function conectarScanner() {
+            const btn = document.getElementById('connectBtn');
+            try {
+                log("Iniciando barrido de servicios...");
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Conectando...';
+                
+                // Pedimos dispositivo con filtro abierto de UUIDs
+                bleDevice = await navigator.bluetooth.requestDevice({ 
+                    acceptAllDevices: true, 
+                    optionalServices: UUIDS 
+                });
+                
+                log(`Dispositivo seleccionado: ${bleDevice.name}`);
+                const server = await bleDevice.gatt.connect();
+                log("Servidor GATT: Conectado");
+                
+                // Loop de descubrimiento profundo
+                const services = await server.getPrimaryServices();
+                log(`Servicios encontrados: ${services.length}`);
+
+                for (const s of services) {
+                    const chars = await s.getCharacteristics();
+                    for (const c of chars) {
+                        if (c.properties.write || c.properties.writeWithoutResponse) {
+                            obdChar = c;
+                            log(`Canal de Escritura OK: ${s.uuid.substring(0,8)}`);
+                            break;
+                        }
+                    }
+                    if (obdChar) break;
+                }
+
+                if (!obdChar) throw new Error("No se encontró canal de datos writable.");
+
+                // Suscripción a notificaciones
+                if (obdChar.properties.notify) {
+                    await obdChar.startNotifications();
+                    obdChar.addEventListener('characteristicvaluechanged', (e) => { 
+                        const val = new TextDecoder().decode(e.target.value).trim();
+                        if(val) log(val, 'rx'); 
+                    });
+                    log("Notificaciones activadas.");
+                }
+
+                // UI Update
+                document.getElementById('bt-led').classList.replace('bg-slate-700', 'bg-emerald-500');
+                document.getElementById('bt-led').classList.add('status-live');
+                document.getElementById('bt-status').innerText = "ONLINE";
+                document.getElementById('bt-status').className = "text-[9px] font-black text-emerald-500 uppercase tracking-widest italic";
+                btn.innerHTML = '<i class="fas fa-link"></i> VINCULADO';
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+                log("Enlace Total. Reseteando ELM327...");
+                await sendAT("ATZ");
+
+            } catch (err) {
+                log(`ERROR: ${err.message}`, 'sys');
+                btn.innerHTML = '<i class="fas fa-redo"></i> REINTENTAR';
+                alert("Carnal, checa que el vLink tenga corriente (Pin 16).");
+            }
+        }
+
+        async function sendAT(cmd) {
+            if (!obdChar) { log("Error: No hay conexión.", "sys"); return; }
+            try {
+                await obdChar.writeValue(new TextEncoder().encode(cmd + "\r"));
+                log(cmd, 'tx');
+            } catch (e) { log("Fallo envío Bluetooth.", "sys"); }
+        }
+
+        function sendManual() {
+            const input = document.getElementById('cmdInput');
+            if (input.value) { sendAT(input.value.toUpperCase()); input.value = ""; }
+        }
+
+        // --- MOTOR VISUAL SPA ---
+        function switchTab(id) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(b => { 
+                b.classList.remove('active-tab', 'text-cyan-400'); 
+                b.classList.add('text-slate-500'); 
+            });
+            
+            document.getElementById(`content-${id}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${id}-btn`);
+            activeBtn.classList.add('active-tab', 'text-cyan-400');
+            activeBtn.classList.remove('text-slate-500');
+        }
+
+        // --- MOTOR 3D THREE.JS ---
+        let scene, camera, renderer, object;
+        function init3D() {
+            const container = document.getElementById('hologram-viewport');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            const light = new THREE.PointLight(0x06b6d4, 2, 50);
+            light.position.set(10, 10, 10);
+            scene.add(light);
+            scene.add(new THREE.AmbientLight(0x404040, 1));
+            
+            camera.position.z = 5;
+            
+            // Default Object: Generator
+            update3D('generator');
+            animate();
+
+            // Interacción Táctil
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+
+            container.addEventListener('mousedown', () => isDragging = true);
+            window.addEventListener('mouseup', () => isDragging = false);
+            
+            container.addEventListener('mousemove', (e) => {
+                if (isDragging && object) {
+                    const deltaMove = { x: e.offsetX - previousMousePosition.x, y: e.offsetY - previousMousePosition.y };
+                    object.rotation.y += deltaMove.x * 0.01;
+                    object.rotation.x += deltaMove.y * 0.01;
+                }
+                previousMousePosition = { x: e.offsetX, y: e.offsetY };
+            });
+            
+            // Soporte Touch
+            container.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            });
+            container.addEventListener('touchend', () => isDragging = false);
+            container.addEventListener('touchmove', (e) => {
+                if (isDragging && object) {
+                    const deltaMove = { x: e.touches[0].clientX - previousMousePosition.x, y: e.touches[0].clientY - previousMousePosition.y };
+                    object.rotation.y += deltaMove.x * 0.01;
+                    object.rotation.x += deltaMove.y * 0.01;
+                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            });
+        }
+
+        function update3D(type) {
+            if (object) scene.remove(object);
+            
+            const material = new THREE.MeshPhongMaterial({ 
+                color: 0x06b6d4, 
+                wireframe: true, 
+                transparent: true, 
+                opacity: 0.8,
+                emissive: 0x06b6d4,
+                emissiveIntensity: 0.4
+            });
+            
+            let geometry;
+            const label = document.getElementById('proj-name');
+
+            if (type === 'generator') {
+                geometry = new THREE.TorusKnotGeometry(1.2, 0.4, 100, 16);
+                label.innerText = "GENERADOR MASTER";
+                material.color.setHex(0x06b6d4);
+            } else if (type === 'iron') {
+                geometry = new THREE.CylinderGeometry(0.5, 0.5, 3, 32);
+                label.innerText = "CAUTÍN DIGITAL";
+                material.color.setHex(0xf59e0b); material.emissive.setHex(0xf59e0b);
+            } else if (type === 'canbus') {
+                geometry = new THREE.IcosahedronGeometry(2, 1);
+                label.innerText = "NODO BUS CAN";
+                material.color.setHex(0x10b981); material.emissive.setHex(0x10b981);
+            }
+            
+            object = new THREE.Mesh(geometry, material);
+            scene.add(object);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (object) object.rotation.y += 0.005;
+            renderer.render(scene, camera);
+        }
+
+        // Init
+        window.onload = init3D;
+        window.onresize = () => {
+            const c = document.getElementById('hologram-viewport');
+            camera.aspect = c.clientWidth / c.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(c.clientWidth, c.clientHeight);
+        };
+    </script>
+</body>
+</html>
