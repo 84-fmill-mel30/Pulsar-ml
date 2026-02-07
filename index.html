@@ -1,1575 +1,342 @@
-
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProPart AI - Diagnóstico Inteligente</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a1128 0%, #1a2332 100%);
-            color: #fff;
-            min-height: 100vh;
-            padding: 10px;
-            padding-bottom: 80px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            border: 1px solid rgba(0, 183, 255, 0.3);
-        }
-
-        .logo {
-            font-size: 28px;
-            font-weight: bold;
-            background: linear-gradient(135deg, #00b7ff, #00ff88);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 5px;
-        }
-
-        .subtitle {
-            color: #6eb6d8;
-            font-size: 14px;
-        }
-
-        .ai-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #9333ea, #ec4899);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            margin-top: 5px;
-            font-weight: 600;
-        }
-
-        .status-card {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border: 1px solid rgba(0, 183, 255, 0.3);
-        }
-
-        .status-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-            gap: 10px;
-        }
-
-        .status-icon {
-            width: 40px;
-            height: 40px;
-            background: rgba(0, 183, 255, 0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-        }
-
-        .status-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #00b7ff;
-        }
-
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
-
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        .status-dot.disconnected { background: #ff4444; }
-        .status-dot.connecting { background: #ffaa00; }
-        .status-dot.connected { background: #00ff88; }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .btn {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 8px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #00b7ff 0%, #0088cc 100%);
-            color: white;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0, 183, 255, 0.4);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(0, 183, 255, 0.3);
-        }
-
-        .btn-ai {
-            background: linear-gradient(135deg, #9333ea 0%, #ec4899 100%);
-            color: white;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 15px;
-            overflow-x: auto;
-            padding-bottom: 5px;
-        }
-
-        .tab {
-            padding: 10px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(0, 183, 255, 0.3);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            white-space: nowrap;
-            font-size: 13px;
-        }
-
-        .tab.active {
-            background: rgba(0, 183, 255, 0.2);
-            border-color: #00b7ff;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .data-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
-            margin-top: 15px;
-        }
-
-        .data-item {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 12px;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .data-label {
-            font-size: 11px;
-            color: #888;
-            margin-bottom: 5px;
-        }
-
-        .data-value {
-            font-size: 22px;
-            font-weight: bold;
-            color: #00b7ff;
-        }
-
-        .data-unit {
-            font-size: 12px;
-            color: #6eb6d8;
-        }
-
-        .brand-selector {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .brand-btn {
-            padding: 15px 10px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 2px solid rgba(0, 183, 255, 0.3);
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-align: center;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .brand-btn:hover {
-            background: rgba(0, 183, 255, 0.1);
-            border-color: #00b7ff;
-            transform: translateY(-2px);
-        }
-
-        .brand-btn.selected {
-            background: rgba(0, 183, 255, 0.2);
-            border-color: #00b7ff;
-        }
-
-        .error-list {
-            margin-top: 15px;
-        }
-
-        .error-item {
-            background: rgba(255, 68, 68, 0.1);
-            border-left: 4px solid #ff4444;
-            padding: 12px;
-            margin-bottom: 8px;
-            border-radius: 5px;
-        }
-
-        .error-code {
-            font-weight: bold;
-            color: #ff4444;
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
-
-        .error-desc {
-            font-size: 12px;
-            color: #ccc;
-        }
-
-        .log {
-            background: rgba(0, 0, 0, 0.5);
-            padding: 12px;
-            border-radius: 10px;
-            max-height: 150px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            margin-top: 15px;
-        }
-
-        .log-entry {
-            margin-bottom: 5px;
-            color: #aaa;
-        }
-
-        .log-entry.error { color: #ff4444; }
-        .log-entry.success { color: #00ff88; }
-        .log-entry.info { color: #00b7ff; }
-
-        /* Claude AI Assistant */
-        .ai-assistant {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(180deg, rgba(10, 17, 40, 0.95) 0%, rgba(10, 17, 40, 0.98) 100%);
-            border-top: 2px solid rgba(147, 51, 234, 0.5);
-            box-shadow: 0 -5px 30px rgba(147, 51, 234, 0.3);
-            z-index: 1000;
-            transition: all 0.3s;
-        }
-
-        .ai-assistant.collapsed {
-            bottom: -calc(100% - 50px);
-        }
-
-        .ai-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 15px;
-            background: rgba(147, 51, 234, 0.2);
-            cursor: pointer;
-        }
-
-        .ai-header:hover {
-            background: rgba(147, 51, 234, 0.3);
-        }
-
-        .ai-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 600;
-        }
-
-        .ai-icon {
-            width: 30px;
-            height: 30px;
-            background: linear-gradient(135deg, #9333ea, #ec4899);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-        }
-
-        .ai-chat {
-            max-height: 300px;
-            overflow-y: auto;
-            padding: 15px;
-        }
-
-        .ai-message {
-            margin-bottom: 12px;
-            padding: 10px 12px;
-            border-radius: 10px;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        .ai-message.user {
-            background: rgba(0, 183, 255, 0.2);
-            margin-left: 20px;
-        }
-
-        .ai-message.claude {
-            background: rgba(147, 51, 234, 0.2);
-            margin-right: 20px;
-        }
-
-        .ai-message .sender {
-            font-weight: 600;
-            margin-bottom: 5px;
-            font-size: 11px;
-            opacity: 0.8;
-        }
-
-        .ai-input-container {
-            padding: 12px 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border-top: 1px solid rgba(147, 51, 234, 0.3);
-        }
-
-        .ai-input-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .ai-input {
-            flex: 1;
-            padding: 10px 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(147, 51, 234, 0.3);
-            border-radius: 8px;
-            color: white;
-            font-size: 14px;
-        }
-
-        .ai-input:focus {
-            outline: none;
-            border-color: #9333ea;
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .ai-send-btn {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #9333ea, #ec4899);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .ai-send-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(147, 51, 234, 0.4);
-        }
-
-        .ai-send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .ai-quick-actions {
-            display: flex;
-            gap: 8px;
-            padding: 0 15px 12px;
-            overflow-x: auto;
-        }
-
-        .quick-action {
-            padding: 6px 12px;
-            background: rgba(147, 51, 234, 0.2);
-            border: 1px solid rgba(147, 51, 234, 0.3);
-            border-radius: 15px;
-            font-size: 11px;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.3s;
-        }
-
-        .quick-action:hover {
-            background: rgba(147, 51, 234, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #00b7ff;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .help-text {
-            font-size: 11px;
-            color: #888;
-            margin-top: 10px;
-            padding: 8px;
-            background: rgba(255, 170, 0, 0.1);
-            border-radius: 5px;
-            border-left: 3px solid #ffaa00;
-        }
-
-        .toggle-icon {
-            transition: transform 0.3s;
-        }
-
-        .ai-assistant.collapsed .toggle-icon {
-            transform: rotate(180deg);
-        }
-
-        @media (max-width: 768px) {
-            .data-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">🔧 PROPART AI</div>
-            <div class="subtitle">DIAGNÓSTICO PROFESIONAL INTELIGENTE</div>
-            <div class="ai-badge">🤖 Con Asistente Claude</div>
-        </div>
-
-        <div class="status-card">
-            <div class="status-header">
-                <div class="status-icon">🚗</div>
-                <div class="status-title">SELECCIONA TU MARCA</div>
-            </div>
-
-            <div class="brand-selector">
-                <div class="brand-btn" onclick="selectBrand('Toyota')">🔴 Toyota</div>
-                <div class="brand-btn" onclick="selectBrand('Honda')">🔵 Honda</div>
-                <div class="brand-btn" onclick="selectBrand('Nissan')">⚫ Nissan</div>
-                <div class="brand-btn" onclick="selectBrand('Mazda')">🔴 Mazda</div>
-                <div class="brand-btn" onclick="selectBrand('Ford')">🔵 Ford</div>
-                <div class="brand-btn" onclick="selectBrand('Chevrolet')">🟡 Chevrolet</div>
-                <div class="brand-btn" onclick="selectBrand('BMW')">⚪ BMW</div>
-                <div class="brand-btn" onclick="selectBrand('Mercedes')">⚪ Mercedes</div>
-                <div class="brand-btn" onclick="selectBrand('Audi')">⚫ Audi</div>
-                <div class="brand-btn" onclick="selectBrand('Volkswagen')">🔵 VW</div>
-                <div class="brand-btn" onclick="selectBrand('Hyundai')">🔵 Hyundai</div>
-                <div class="brand-btn" onclick="selectBrand('Kia')">🔴 Kia</div>
-                <div class="brand-btn" onclick="selectBrand('Subaru')">🔵 Subaru</div>
-                <div class="brand-btn" onclick="selectBrand('Mitsubishi')">🔴 Mitsubishi</div>
-                <div class="brand-btn" onclick="selectBrand('Jeep')">🟢 Jeep</div>
-                <div class="brand-btn" onclick="selectBrand('Dodge')">🔴 Dodge</div>
-            </div>
-
-            <div id="brandInfo" style="margin-top: 15px; padding: 12px; background: rgba(0, 183, 255, 0.1); border-radius: 8px; display: none;">
-                <div style="font-weight: 600; margin-bottom: 5px;">Marca seleccionada: <span id="selectedBrand"></span></div>
-                <div style="font-size: 12px; color: #aaa;">Configuración optimizada para diagnóstico</div>
-            </div>
-        </div>
-
-        <div class="status-card">
-            <div class="status-header">
-                <div class="status-icon">📡</div>
-                <div class="status-title">CONEXIÓN ELM327</div>
-            </div>
-
-            <div class="connection-status">
-                <div class="status-dot disconnected" id="statusDot"></div>
-                <div id="statusText">Desconectado</div>
-            </div>
-
-            <button class="btn btn-primary" id="scanBtn" onclick="scanDevices()">
-                🔍 Buscar Dispositivo ELM327
-            </button>
-
-            <button class="btn btn-secondary" onclick="scanAllDevices()">
-                📡 Buscar TODOS los Dispositivos
-            </button>
-
-            <button class="btn btn-primary" id="connectBtn" style="display: none;" onclick="connectDevice()">
-                🔌 Conectar al Dispositivo
-            </button>
-
-            <button class="btn btn-secondary" id="disconnectBtn" style="display: none;" onclick="disconnect()">
-                ❌ Desconectar
-            </button>
-
-            <div class="help-text">
-                💡 <strong>¿Necesitas ayuda?</strong> Pregúntale a Claude en el asistente de abajo. Puede ayudarte con conexión, interpretación de códigos, y más.<br>
-                <small style="margin-top: 5px; display: block;">📱 Dispositivos compatibles: ELM327, V-link, iOS V link, OBDII, CHX, Vgate, etc.</small>
-            </div>
-
-            <div class="log" id="logContainer">
-                <div class="log-entry info">Sistema listo. Selecciona tu marca y presiona "Buscar Dispositivo".</div>
-            </div>
-        </div>
-
-        <div id="diagnosticContent" style="display: none;">
-            <div class="tabs">
-                <div class="tab active" onclick="switchTab('basicos')">📊 BÁSICOS</div>
-                <div class="tab" onclick="switchTab('avanzados')">⚙️ AVANZADOS</div>
-                <div class="tab" onclick="switchTab('motor')">🔧 MOTOR</div>
-                <div class="tab" onclick="switchTab('sensores')">📡 SENSORES</div>
-                <div class="tab" onclick="switchTab('dtc')">⚠️ CÓDIGOS</div>
-            </div>
-
-            <div id="basicos" class="tab-content active">
-                <div class="status-card">
-                    <h3 style="margin-bottom: 15px; font-size: 16px;">Parámetros Básicos en Tiempo Real</h3>
-                    <div class="data-grid" id="basicData">
-                        <div class="data-item">
-                            <div class="data-label">RPM Motor</div>
-                            <div class="data-value" id="rpm">----</div>
-                            <div class="data-unit">rpm</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Velocidad</div>
-                            <div class="data-value" id="speed">----</div>
-                            <div class="data-unit">km/h</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Temperatura</div>
-                            <div class="data-value" id="temp">----</div>
-                            <div class="data-unit">°C</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Voltaje Batería</div>
-                            <div class="data-value" id="voltage">----</div>
-                            <div class="data-unit">V</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Carga Motor</div>
-                            <div class="data-value" id="load">----</div>
-                            <div class="data-unit">%</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Posición Acelerador</div>
-                            <div class="data-value" id="throttle">----</div>
-                            <div class="data-unit">%</div>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" style="margin-top: 15px;" onclick="readBasicData()">
-                        🔄 Actualizar Datos
-                    </button>
-                    <button class="btn btn-secondary" onclick="startLiveData()">
-                        ▶️ Monitoreo Continuo
-                    </button>
-                </div>
-            </div>
-
-            <div id="avanzados" class="tab-content">
-                <div class="status-card">
-                    <h3 style="margin-bottom: 15px; font-size: 16px;">Parámetros Avanzados</h3>
-                    <div class="data-grid">
-                        <div class="data-item">
-                            <div class="data-label">Presión MAP</div>
-                            <div class="data-value" id="map">----</div>
-                            <div class="data-unit">kPa</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Flujo MAF</div>
-                            <div class="data-value" id="maf">----</div>
-                            <div class="data-unit">g/s</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Avance Encendido</div>
-                            <div class="data-value" id="timing">----</div>
-                            <div class="data-unit">°</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Presión Combustible</div>
-                            <div class="data-value" id="fuelPressure">----</div>
-                            <div class="data-unit">kPa</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Trim Corto B1</div>
-                            <div class="data-value" id="stft1">----</div>
-                            <div class="data-unit">%</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Trim Largo B1</div>
-                            <div class="data-value" id="ltft1">----</div>
-                            <div class="data-unit">%</div>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" style="margin-top: 15px;" onclick="readAdvancedData()">
-                        🔄 Leer Parámetros Avanzados
-                    </button>
-                </div>
-            </div>
-
-            <div id="motor" class="tab-content">
-                <div class="status-card">
-                    <h3 style="margin-bottom: 15px; font-size: 16px;">Diagnóstico del Motor</h3>
-                    <div class="data-grid">
-                        <div class="data-item">
-                            <div class="data-label">Temp. Aceite</div>
-                            <div class="data-value" id="oilTemp">----</div>
-                            <div class="data-unit">°C</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Temp. Transmisión</div>
-                            <div class="data-value" id="transTemp">----</div>
-                            <div class="data-unit">°C</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Lambda Sensor 1</div>
-                            <div class="data-value" id="lambda1">----</div>
-                            <div class="data-unit">λ</div>
-                        </div>
-                        <div class="data-item">
-                            <div class="data-label">Lambda Sensor 2</div>
-                            <div class="data-value" id="lambda2">----</div>
-                            <div class="data-unit">λ</div>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" style="margin-top: 15px;" onclick="readEngineData()">
-                        🔄 Diagnosticar Motor
-                    </button>
-                    <button class="btn btn-ai" onclick="askClaude('Analiza los datos del motor y dame recomendaciones')">
-                        🤖 Análisis con Claude
-                    </button>
-                </div>
-            </div>
-
-            <div id="sensores" class="tab-content">
-                <div class="status-card">
-                    <h3 style="margin-bottom: 15px; font-size: 16px;">Estado de Sensores</h3>
-                    <div id="sensorsData" style="font-size: 13px;">
-                        <p style="color: #888;">Presiona el botón para verificar el estado de todos los sensores</p>
-                    </div>
-                    <button class="btn btn-primary" style="margin-top: 15px;" onclick="checkSensors()">
-                        🔍 Verificar Sensores
-                    </button>
-                </div>
-            </div>
-
-            <div id="dtc" class="tab-content">
-                <div class="status-card">
-                    <div class="status-header">
-                        <div class="status-icon">⚠️</div>
-                        <div class="status-title">CÓDIGOS DE ERROR (DTCs)</div>
-                    </div>
-                    <button class="btn btn-primary" onclick="readDTCs()">
-                        📋 Leer Códigos de Error
-                    </button>
-                    <button class="btn btn-ai" onclick="askClaude('¿Qué significan estos códigos de error y cómo los soluciono?')">
-                        🤖 Explicar con Claude
-                    </button>
-                    <button class="btn btn-secondary" onclick="clearDTCs()">
-                        🗑️ Borrar Códigos
-                    </button>
-                    <div class="error-list" id="errorList"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Claude AI Assistant -->
-    <div class="ai-assistant" id="aiAssistant">
-        <div class="ai-header" onclick="toggleAI()">
-            <div class="ai-title">
-                <div class="ai-icon">🤖</div>
-                <div>
-                    <div style="font-size: 14px;">Asistente Claude</div>
-                    <div style="font-size: 10px; opacity: 0.7;">Tu mecánico virtual inteligente</div>
-                </div>
-            </div>
-            <div class="toggle-icon">▼</div>
-        </div>
-
-        <div class="ai-quick-actions">
-            <div class="quick-action" onclick="askQuick('¿Cómo conecto el ELM327?')">❓ Ayuda Conexión</div>
-            <div class="quick-action" onclick="askQuick('Explica estos códigos de error')">⚠️ Explicar Códigos</div>
-            <div class="quick-action" onclick="askQuick('¿Qué significan estos valores?')">📊 Interpretar Datos</div>
-            <div class="quick-action" onclick="askQuick('Dame consejos de mantenimiento')">🔧 Mantenimiento</div>
-        </div>
-
-        <div class="ai-chat" id="aiChat">
-            <div class="ai-message claude">
-                <div class="sender">🤖 Claude</div>
-                <div>¡Hola! Soy Claude, tu asistente de diagnóstico automotriz. Puedo ayudarte con:
-                
-• Conectar tu dispositivo ELM327
-• Interpretar códigos de error (DTCs)
-• Explicar valores de sensores
-• Dar consejos de mantenimiento
-• Resolver problemas técnicos
-
-¿En qué puedo ayudarte hoy?</div>
-            </div>
-        </div>
-
-        <div class="ai-input-container">
-            <div class="ai-input-group">
-                <input 
-                    type="text" 
-                    class="ai-input" 
-                    id="aiInput" 
-                    placeholder="Escribe tu pregunta..."
-                    onkeypress="if(event.key==='Enter') sendToAI()"
-                >
-                <button class="ai-send-btn" id="aiSendBtn" onclick="sendToAI()">Enviar</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Variables globales
-        let bluetoothDevice = null;
-        let characteristic = null;
-        let selectedDevice = null;
-        let isConnected = false;
-        let receiveBuffer = '';
-        let currentBrand = null;
-        let liveDataInterval = null;
-        let aiCollapsed = false;
-
-        // Comandos OBD-II
-        const OBD = {
-            RESET: 'ATZ\r',
-            ECHO_OFF: 'ATE0\r',
-            LINEFEED_OFF: 'ATL0\r',
-            SPACES_OFF: 'ATS0\r',
-            HEADERS_OFF: 'ATH0\r',
-            PROTOCOL_AUTO: 'ATSP0\r',
-            ADAPTIVE_TIMING: 'ATAT2\r',
-            ALLOW_LONG: 'ATAL\r',
-            
-            RPM: '010C\r',
-            SPEED: '010D\r',
-            COOLANT_TEMP: '0105\r',
-            ENGINE_LOAD: '0104\r',
-            THROTTLE: '0111\r',
-            VOLTAGE: 'ATRV\r',
-            MAP: '010B\r',
-            MAF: '0110\r',
-            TIMING: '010E\r',
-            FUEL_PRESSURE: '010A\r',
-            STFT_B1: '0106\r',
-            LTFT_B1: '0107\r',
-            STFT_B2: '0108\r',
-            LTFT_B2: '0109\r',
-            O2_S1_B1: '0114\r',
-            O2_S2_B1: '0115\r',
-            DTC_READ: '03\r',
-            DTC_CLEAR: '04\r'
-        };
-
-        // Funciones de marca
-        function selectBrand(brand) {
-            currentBrand = brand;
-            
-            // Actualizar UI
-            document.querySelectorAll('.brand-btn').forEach(btn => {
-                btn.classList.remove('selected');
-            });
-            event.target.classList.add('selected');
-            
-            document.getElementById('brandInfo').style.display = 'block';
-            document.getElementById('selectedBrand').textContent = brand;
-            
-            log(`✅ Marca seleccionada: ${brand}`, 'success');
-            
-            // Mensaje del asistente
-            addAIMessage('claude', `Perfecto, configuré el sistema para ${brand}. Ahora puedes conectar tu dispositivo ELM327. Si necesitas ayuda, solo pregúntame! 🚗`);
-        }
-
-        // Funciones de log
-        function log(message, type = 'info') {
-            const logContainer = document.getElementById('logContainer');
-            const entry = document.createElement('div');
-            entry.className = `log-entry ${type}`;
-            const timestamp = new Date().toLocaleTimeString();
-            entry.textContent = `[${timestamp}] ${message}`;
-            logContainer.appendChild(entry);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
-
-        function updateStatus(status, text) {
-            const dot = document.getElementById('statusDot');
-            const statusText = document.getElementById('statusText');
-            dot.className = `status-dot ${status}`;
-            statusText.textContent = text;
-        }
-
-        // Funciones Bluetooth mejoradas
-        async function scanDevices() {
-            try {
-                log('🔍 Iniciando búsqueda Bluetooth...', 'info');
-                updateStatus('connecting', 'Buscando...');
-                
-                const btn = document.getElementById('scanBtn');
-                btn.disabled = true;
-                btn.innerHTML = '<span class="loading"></span> Buscando...';
-
-                if (!navigator.bluetooth) {
-                    throw new Error('Bluetooth no disponible. Usa Chrome/Edge en Android.');
-                }
-
-                const device = await navigator.bluetooth.requestDevice({
-                    filters: [
-                        { namePrefix: 'ELM' },
-                        { namePrefix: 'elm' },
-                        { namePrefix: 'OBD' },
-                        { namePrefix: 'obd' },
-                        { namePrefix: 'CHX' },
-                        { namePrefix: 'V-LINK' },
-                        { namePrefix: 'V-link' },
-                        { namePrefix: 'V link' },
-                        { namePrefix: 'iOS V' },
-                        { namePrefix: 'Vgate' },
-                        { namePrefix: 'vgate' },
-                        { namePrefix: 'OBDII' },
-                        { namePrefix: 'MLT-BT' },
-                        { namePrefix: 'KONNWEI' },
-                        { namePrefix: 'ScanTool' }
-                    ],
-                    optionalServices: [
-                        '0000fff0-0000-1000-8000-00805f9b34fb',
-                        '0000ffe0-0000-1000-8000-00805f9b34fb',
-                        '00001101-0000-1000-8000-00805f9b34fb'
-                    ]
-                });
-
-                if (device) {
-                    selectedDevice = device;
-                    log(`✅ Encontrado: ${device.name}`, 'success');
-                    btn.style.display = 'none';
-                    document.getElementById('connectBtn').style.display = 'block';
-                    updateStatus('disconnected', `Encontrado: ${device.name}`);
-                    
-                    addAIMessage('claude', `Excelente! Encontré tu dispositivo "${device.name}". Ahora presiona "Conectar" para establecer la conexión. 🔌`);
-                }
-
-            } catch (error) {
-                log(`❌ Error: ${error.message}`, 'error');
-                updateStatus('disconnected', 'Error');
-                
-                if (error.message.includes('User cancelled')) {
-                    addAIMessage('claude', 'Búsqueda cancelada. Si tu dispositivo no aparece en la lista, prueba el botón "Buscar TODOS los Dispositivos" (el segundo botón gris). 💡');
-                } else {
-                    addAIMessage('claude', `Error: ${error.message}. 💡 TIP: Si tu dispositivo se llama "iOS V link" o tiene otro nombre, usa el botón "Buscar TODOS los Dispositivos".`);
-                }
-            } finally {
-                const btn = document.getElementById('scanBtn');
-                btn.disabled = false;
-                btn.innerHTML = '🔍 Buscar Dispositivo ELM327';
-            }
-        }
-
-        async function scanAllDevices() {
-            try {
-                log('📡 Buscando TODOS los dispositivos Bluetooth (sin filtros)...', 'info');
-                updateStatus('connecting', 'Buscando...');
-
-                if (!navigator.bluetooth) {
-                    throw new Error('Bluetooth no disponible. Usa Chrome/Edge en Android.');
-                }
-
-                const device = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: [
-                        '0000fff0-0000-1000-8000-00805f9b34fb',
-                        '0000ffe0-0000-1000-8000-00805f9b34fb',
-                        '00001101-0000-1000-8000-00805f9b34fb'
-                    ]
-                });
-
-                if (device) {
-                    selectedDevice = device;
-                    log(`✅ Encontrado: ${device.name || 'Dispositivo sin nombre'}`, 'success');
-                    document.getElementById('scanBtn').style.display = 'none';
-                    document.getElementById('connectBtn').style.display = 'block';
-                    updateStatus('disconnected', `Encontrado: ${device.name || 'Dispositivo'}`);
-                    
-                    addAIMessage('claude', `¡Perfecto! Encontré "${device.name || 'tu dispositivo'}". Ahora intenta conectar. Si ves "iOS V link", ese es tu adaptador OBD-II. 🔌`);
-                }
-
-            } catch (error) {
-                log(`❌ Error: ${error.message}`, 'error');
-                updateStatus('disconnected', 'Error');
-                
-                if (error.message.includes('User cancelled')) {
-                    addAIMessage('claude', 'Búsqueda cancelada. Intenta de nuevo cuando estés listo. 💡');
-                } else {
-                    addAIMessage('claude', `Error: ${error.message}. Verifica que Bluetooth esté activo y que el ELM327 esté enchufado al OBD-II del auto.`);
-                }
-            }
-        }
-
-        async function connectDevice() {
-            if (!selectedDevice) return;
-
-            try {
-                log(`🔌 Conectando a ${selectedDevice.name}...`, 'info');
-                updateStatus('connecting', 'Conectando...');
-                
-                const btn = document.getElementById('connectBtn');
-                btn.disabled = true;
-                btn.innerHTML = '<span class="loading"></span> Conectando...';
-
-                await selectedDevice.gatt.connect();
-                log('✅ GATT Conectado', 'success');
-
-                // Buscar servicio
-                let service;
-                const services = ['0000fff0-0000-1000-8000-00805f9b34fb', '0000ffe0-0000-1000-8000-00805f9b34fb'];
-                
-                for (const uuid of services) {
-                    try {
-                        service = await selectedDevice.gatt.getPrimaryService(uuid);
-                        if (service) break;
-                    } catch (e) { continue; }
-                }
-
-                if (!service) throw new Error('Servicio no encontrado');
-
-                // Buscar característica
-                const chars = [
-                    '0000fff1-0000-1000-8000-00805f9b34fb',
-                    '0000fff2-0000-1000-8000-00805f9b34fb',
-                    '0000ffe1-0000-1000-8000-00805f9b34fb',
-                    '0000ffe2-0000-1000-8000-00805f9b34fb'
-                ];
-                
-                for (const uuid of chars) {
-                    try {
-                        characteristic = await service.getCharacteristic(uuid);
-                        if (characteristic) break;
-                    } catch (e) { continue; }
-                }
-
-                if (!characteristic) throw new Error('Característica no encontrada');
-
-                await characteristic.startNotifications();
-                characteristic.addEventListener('characteristicvaluechanged', handleData);
-
-                await initELM327();
-
-                isConnected = true;
-                bluetoothDevice = selectedDevice;
-                updateStatus('connected', 'Conectado ✓');
-                
-                btn.style.display = 'none';
-                document.getElementById('disconnectBtn').style.display = 'block';
-                document.getElementById('diagnosticContent').style.display = 'block';
-
-                log('🎉 ¡Conexión exitosa!', 'success');
-                addAIMessage('claude', '¡Perfecto! Estamos conectados y listos para diagnosticar. Selecciona una pestaña arriba para comenzar. 🎉');
-
-            } catch (error) {
-                log(`❌ Error: ${error.message}`, 'error');
-                updateStatus('disconnected', 'Error');
-                document.getElementById('connectBtn').disabled = false;
-                document.getElementById('connectBtn').innerHTML = '🔌 Conectar al Dispositivo';
-                
-                addAIMessage('claude', `Error de conexión: ${error.message}. Intenta: 1) Desemparejar en Bluetooth, 2) Reiniciar el vehículo, 3) Volver a buscar.`);
-            }
-        }
-
-        async function initELM327() {
-            log('⚙️ Inicializando ELM327...', 'info');
-            
-            try {
-                // Reset
-                log('  → Reset...', 'info');
-                await sendCommand('ATZ');
-                await sleep(2000); // Reset necesita más tiempo
-                
-                // Echo OFF
-                log('  → Echo OFF...', 'info');
-                await sendCommand('ATE0');
-                await sleep(200);
-                
-                // Linefeed OFF
-                log('  → Linefeed OFF...', 'info');
-                await sendCommand('ATL0');
-                await sleep(200);
-                
-                // Spaces OFF (importante para parsing)
-                log('  → Spaces OFF...', 'info');
-                await sendCommand('ATS0');
-                await sleep(200);
-                
-                // Headers OFF
-                log('  → Headers OFF...', 'info');
-                await sendCommand('ATH0');
-                await sleep(200);
-                
-                // Adaptive Timing Auto
-                log('  → Adaptive Timing...', 'info');
-                await sendCommand('ATAT1');
-                await sleep(200);
-                
-                // Set Timeout
-                log('  → Set Timeout...', 'info');
-                await sendCommand('ATST64');
-                await sleep(200);
-                
-                // Auto Protocol
-                log('  → Auto Protocol...', 'info');
-                await sendCommand('ATSP0');
-                await sleep(500);
-                
-                log('✅ ELM327 inicializado correctamente', 'success');
-                addAIMessage('claude', 'Dispositivo inicializado. Ahora puedes leer datos del vehículo. 👍');
-                
-            } catch (error) {
-                log(`⚠️ Error en inicialización: ${error.message}`, 'warning');
-                addAIMessage('claude', `Inicialización completada con advertencias. Puedes intentar leer datos de todos modos.`);
-            }
-        }
-
-        function handleData(event) {
-            const decoder = new TextDecoder();
-            const chunk = decoder.decode(event.target.value);
-            receiveBuffer += chunk;
-            console.log('RX:', chunk); // Debug
-        }
-
-        async function sendCommand(cmd, timeout = 5000) {
-            if (!characteristic) throw new Error('No conectado');
-
-            // Limpiar buffer antes de enviar
-            receiveBuffer = '';
-            
-            // Enviar comando
-            const encoder = new TextEncoder();
-            const cmdToSend = cmd.trim() + '\r';
-            await characteristic.writeValue(encoder.encode(cmdToSend));
-            console.log('TX:', cmdToSend.replace('\r', '\\r'));
-            
-            // Esperar respuesta con timeout más largo
-            const start = Date.now();
-            while (receiveBuffer.length === 0) {
-                if (Date.now() - start > timeout) {
-                    throw new Error('Timeout esperando respuesta');
-                }
-                await sleep(50);
-            }
-            
-            // Esperar a que termine de llegar toda la respuesta
-            // Los adaptadores chinos envían datos en múltiples paquetes
-            await sleep(300);
-            
-            // Limpiar y retornar
-            const response = receiveBuffer.trim();
-            console.log('Respuesta completa:', response);
-            return response;
-        }
-
-        function sleep(ms) {
-            return new Promise(r => setTimeout(r, ms));
-        }
-
-        function parseOBD(response, bytes = 1) {
-            // Limpiar respuesta de caracteres extra
-            response = response.replace(/\r/g, '').replace(/\n/g, '').replace(/\s/g, '').replace(/>/g, '');
-            
-            console.log('Parseando:', response);
-            
-            // Buscar respuesta válida (41 = respuesta a modo 01)
-            const match = response.match(/41([0-9A-F]{2})([0-9A-F]+)/i);
-            if (!match) {
-                console.log('No match encontrado en:', response);
-                return null;
-            }
-            
-            const pid = match[1];
-            const data = match[2];
-            
-            console.log('PID:', pid, 'Data:', data);
-            
-            if (bytes === 1) {
-                // 1 byte = 2 caracteres hex
-                if (data.length < 2) return null;
-                return parseInt(data.substring(0, 2), 16);
-            } else if (bytes === 2) {
-                // 2 bytes = 4 caracteres hex
-                if (data.length < 4) return null;
-                const highByte = parseInt(data.substring(0, 2), 16);
-                const lowByte = parseInt(data.substring(2, 4), 16);
-                return (highByte * 256) + lowByte;
-            }
-            
-            return data;
-        }
-
-        // Funciones de lectura de datos
-        async function readBasicData() {
-            if (!isConnected) {
-                addAIMessage('claude', 'Primero necesitas conectar el dispositivo. ¿Necesitas ayuda?');
-                return;
-            }
-
-            try {
-                log('📊 Leyendo parámetros básicos...', 'info');
-
-                // RPM
-                try {
-                    log('  → RPM...', 'info');
-                    const rpm = parseOBD(await sendCommand(OBD.RPM), 2);
-                    if (rpm !== null) {
-                        document.getElementById('rpm').textContent = Math.round(rpm / 4);
-                        log(`  ✓ RPM: ${Math.round(rpm / 4)}`, 'success');
-                    } else {
-                        log('  ✗ RPM: Sin datos', 'warning');
-                        document.getElementById('rpm').textContent = '----';
-                    }
-                } catch (e) {
-                    log(`  ✗ RPM Error: ${e.message}`, 'error');
-                    document.getElementById('rpm').textContent = 'ERR';
-                }
-                await sleep(200);
-
-                // Velocidad
-                try {
-                    log('  → Velocidad...', 'info');
-                    const speed = parseOBD(await sendCommand(OBD.SPEED), 1);
-                    if (speed !== null) {
-                        document.getElementById('speed').textContent = speed;
-                        log(`  ✓ Velocidad: ${speed} km/h`, 'success');
-                    } else {
-                        log('  ✗ Velocidad: Sin datos', 'warning');
-                        document.getElementById('speed').textContent = '----';
-                    }
-                } catch (e) {
-                    log(`  ✗ Velocidad Error: ${e.message}`, 'error');
-                    document.getElementById('speed').textContent = 'ERR';
-                }
-                await sleep(200);
-
-                // Temperatura
-                try {
-                    log('  → Temperatura...', 'info');
-                    const temp = parseOBD(await sendCommand(OBD.COOLANT_TEMP), 1);
-                    if (temp !== null) {
-                        const tempC = temp - 40;
-                        document.getElementById('temp').textContent = tempC;
-                        log(`  ✓ Temperatura: ${tempC}°C`, 'success');
-                    } else {
-                        log('  ✗ Temperatura: Sin datos', 'warning');
-                        document.getElementById('temp').textContent = '----';
-                    }
-                } catch (e) {
-                    log(`  ✗ Temperatura Error: ${e.message}`, 'error');
-                    document.getElementById('temp').textContent = 'ERR';
-                }
-                await sleep(200);
-
-                // Voltaje
-                try {
-                    log('  → Voltaje...', 'info');
-                    const voltResp = await sendCommand(OBD.VOLTAGE);
-                    const match = voltResp.match(/([0-9.]+)V?/i);
-                    if (match) {
-                        document.getElementById('voltage').textContent = parseFloat(match[1]).toFixed(1);
-                        log(`  ✓ Voltaje: ${match[1]}V`, 'success');
-                    } else {
-                        log('  ✗ Voltaje: Sin datos', 'warning');
-                        document.getElementById('voltage').textContent = '----';
-                    }
-                } catch (e) {
-                    log(`  ✗ Voltaje Error: ${e.message}`, 'error');
-                    document.getElementById('voltage').textContent = 'ERR';
-                }
-                await sleep(200);
-
-                // Carga
-                try {
-                    log('  → Carga...', 'info');
-                    const load = parseOBD(await sendCommand(OBD.ENGINE_LOAD), 1);
-                    if (load !== null) {
-                        const loadPct = ((load * 100) / 255).toFixed(1);
-                        document.getElementById('load').textContent = loadPct;
-                        log(`  ✓ Carga: ${loadPct}%`, 'success');
-                    } else {
-                        log('  ✗ Carga: Sin datos', 'warning');
-                        document.getElementById('load').textContent = '----';
-                    }
-                } catch (e) {
-                    log(`  ✗ Carga Error: ${e.message}`, 'error');
-                    document.getElementById('load').textContent = 'ERR';
-                }
-                await sleep(200);
-
-                // Acelerador
-                try {
-                    log('  → Acelerador...', 'info');
-                    const throttle = parseOBD(await sendCommand(OBD.THROTTLE), 1);
-                    if (throttle !== null) document.getElementById('throttle').textContent = ((throttle * 100) / 255).toFixed(1);
-                } catch (e) { log('Error acelerador', 'error'); }
-
-                log('✅ Datos básicos actualizados', 'success');
-
-            } catch (error) {
-                log(`❌ Error: ${error.message}`, 'error');
-            }
-        }
-
-        async function readAdvancedData() {
-            if (!isConnected) return;
-
-            try {
-                log('📊 Leyendo datos avanzados...', 'info');
-
-                const updates = [
-                    { cmd: OBD.MAP, el: 'map', bytes: 1 },
-                    { cmd: OBD.MAF, el: 'maf', bytes: 2, calc: v => (v / 100).toFixed(2) },
-                    { cmd: OBD.TIMING, el: 'timing', bytes: 1, calc: v => (v / 2 - 64).toFixed(1) },
-                    { cmd: OBD.FUEL_PRESSURE, el: 'fuelPressure', bytes: 1, calc: v => v * 3 },
-                    { cmd: OBD.STFT_B1, el: 'stft1', bytes: 1, calc: v => ((v - 128) * 100 / 128).toFixed(2) },
-                    { cmd: OBD.LTFT_B1, el: 'ltft1', bytes: 1, calc: v => ((v - 128) * 100 / 128).toFixed(2) }
-                ];
-
-                for (const u of updates) {
-                    try {
-                        const val = parseOBD(await sendCommand(u.cmd), u.bytes);
-                        if (val !== null) {
-                            document.getElementById(u.el).textContent = u.calc ? u.calc(val) : val;
-                        }
-                        await sleep(100);
-                    } catch (e) {}
-                }
-
-                log('✅ Datos avanzados actualizados', 'success');
-            } catch (error) {
-                log(`❌ Error: ${error.message}`, 'error');
-            }
-        }
-
-        async function readEngineData() {
-            if (!isConnected) return;
-            
-            log('🔧 Leyendo diagnóstico del motor...', 'info');
-            
-            // Simulado - requeriría PIDs específicos
-            document.getElementById('oilTemp').textContent = 'N/A';
-            document.getElementById('transTemp').textContent = 'N/A';
-            document.getElementById('lambda1').textContent = 'N/A';
-            document.getElementById('lambda2').textContent = 'N/A';
-            
-            log('ℹ️ Algunos parámetros requieren PIDs específicos', 'info');
-        }
-
-        async function checkSensors() {
-            if (!isConnected) return;
-            
-            const container = document.getElementById('sensorsData');
-            container.innerHTML = '<div style="text-align:center"><div class="loading"></div></div>';
-            
-            await sleep(1000);
-            
-            container.innerHTML = `
-                <div style="display: grid; gap: 10px;">
-                    <div style="padding: 10px; background: rgba(0,255,136,0.1); border-left: 3px solid #00ff88; border-radius: 5px;">
-                        ✅ <strong>Sensor MAF:</strong> OK - Flujo de aire normal
-                    </div>
-                    <div style="padding: 10px; background: rgba(0,255,136,0.1); border-left: 3px solid #00ff88; border-radius: 5px;">
-                        ✅ <strong>Sensor MAP:</strong> OK - Presión correcta
-                    </div>
-                    <div style="padding: 10px; background: rgba(0,255,136,0.1); border-left: 3px solid #00ff88; border-radius: 5px;">
-                        ✅ <strong>Sensor O2:</strong> OK - Lambda en rango
-                    </div>
-                    <div style="padding: 10px; background: rgba(0,255,136,0.1); border-left: 3px solid #00ff88; border-radius: 5px;">
-                        ✅ <strong>Sensor TPS:</strong> OK - Acelerador respondiendo
-                    </div>
-                    <div style="padding: 10px; background: rgba(255,170,0,0.1); border-left: 3px solid #ffaa00; border-radius: 5px;">
-                        ⚠️ <strong>Sensor CKP:</strong> Revisar - Señal intermitente
-                    </div>
-                </div>
-            `;
-            
-            log('✅ Verificación de sensores completada', 'success');
-        }
-
-        async function readDTCs() {
-            if (!isConnected) return;
-
-            try {
-                log('🔍 Leyendo códigos de error...', 'info');
-                
-                const list = document.getElementById('errorList');
-                list.innerHTML = '<div style="text-align:center;padding:20px;"><div class="loading"></div></div>';
-
-                const response = await sendCommand(OBD.DTC_READ, 5000);
-                const dtcs = parseDTCs(response);
-                
-                if (dtcs.length === 0) {
-                    list.innerHTML = '<div style="text-align:center;padding:20px;color:#00ff88;">✅ No hay códigos de error</div>';
-                    log('✅ Sin códigos de error', 'success');
-                    addAIMessage('claude', '¡Buenas noticias! No encontré códigos de error. Tu vehículo está funcionando correctamente. 👍');
-                } else {
-                    list.innerHTML = '';
-                    dtcs.forEach(dtc => {
-                        const item = document.createElement('div');
-                        item.className = 'error-item';
-                        item.innerHTML = `
-                            <div class="error-code">${dtc.code}</div>
-                            <div class="error-desc">${dtc.description}</div>
-                        `;
-                        list.appendChild(item);
-                    });
-                    log(`⚠️ ${dtcs.length} código(s) encontrados`, 'info');
-                    
-                    const codes = dtcs.map(d => d.code).join(', ');
-                    addAIMessage('claude', `Encontré estos códigos: ${codes}. ¿Quieres que te explique qué significan y cómo solucionarlos?`);
-                }
-
-            } catch (error) {
-                log(`❌ Error: ${error.message}`, 'error');
-                document.getElementById('errorList').innerHTML = '';
-            }
-        }
-
-        function parseDTCs(response) {
-            const dtcs = [];
-            response = response.replace(/\s/g, '').replace(/>/g, '');
-            const match = response.match(/43([0-9A-F]+)/i);
-            if (!match) return dtcs;
-            
-            const data = match[1];
-            for (let i = 0; i < data.length; i += 4) {
-                const b1 = parseInt(data.substring(i, i + 2), 16);
-                const b2 = parseInt(data.substring(i + 2, i + 4), 16);
-                if (b1 === 0 && b2 === 0) continue;
-                
-                const prefix = ['P', 'C', 'B', 'U'][(b1 & 0xC0) >> 6];
-                const code = prefix + ((b1 & 0x30) >> 4) + (b1 & 0x0F).toString(16).toUpperCase() + b2.toString(16).toUpperCase().padStart(2, '0');
-                
-                dtcs.push({
-                    code: code,
-                    description: getDTCDesc(code)
-                });
-            }
-            return dtcs;
-        }
-
-        function getDTCDesc(code) {
-            const descs = {
-                'P0300': 'Fallas de encendido aleatorias',
-                'P0301': 'Falla encendido - Cilindro 1',
-                'P0302': 'Falla encendido - Cilindro 2',
-                'P0303': 'Falla encendido - Cilindro 3',
-                'P0304': 'Falla encendido - Cilindro 4',
-                'P0171': 'Sistema muy pobre - Banco 1',
-                'P0172': 'Sistema muy rico - Banco 1',
-                'P0420': 'Catalizador bajo rendimiento'
-            };
-            return descs[code] || 'Consulta manual técnico';
-        }
-
-        async function clearDTCs() {
-            if (!isConnected) return;
-            if (!confirm('¿Borrar códigos de error?')) return;
-
-            try {
-                log('🗑️ Borrando códigos...', 'info');
-                await sendCommand(OBD.DTC_CLEAR);
-                log('✅ Códigos borrados', 'success');
-                document.getElementById('errorList').innerHTML = '';
-                addAIMessage('claude', 'Códigos borrados. Te recomiendo hacer una prueba de manejo y luego volver a escanear para verificar que no regresen.');
-                setTimeout(() => readDTCs(), 1000);
-            } catch (error) {
-                log(`❌ Error: ${error.message}`, 'error');
-            }
-        }
-
-        function startLiveData() {
-            if (liveDataInterval) {
-                clearInterval(liveDataInterval);
-                liveDataInterval = null;
-                event.target.textContent = '▶️ Monitoreo Continuo';
-                log('⏸️ Monitoreo detenido', 'info');
-            } else {
-                liveDataInterval = setInterval(readBasicData, 2000);
-                event.target.textContent = '⏸️ Detener Monitoreo';
-                log('▶️ Monitoreo iniciado', 'success');
-                addAIMessage('claude', 'Monitoreo en tiempo real activado. Los datos se actualizarán cada 2 segundos. 📊');
-            }
-        }
-
-        function disconnect() {
-            if (bluetoothDevice && bluetoothDevice.gatt.connected) {
-                bluetoothDevice.gatt.disconnect();
-            }
-            
-            if (liveDataInterval) {
-                clearInterval(liveDataInterval);
-                liveDataInterval = null;
-            }
-            
-            bluetoothDevice = null;
-            characteristic = null;
-            selectedDevice = null;
-            isConnected = false;
-            
-            updateStatus('disconnected', 'Desconectado');
-            document.getElementById('disconnectBtn').style.display = 'none';
-            document.getElementById('scanBtn').style.display = 'block';
-            document.getElementById('diagnosticContent').style.display = 'none';
-            
-            log('🔌 Desconectado', 'info');
-            addAIMessage('claude', 'Nos desconectamos del vehículo. Cuando quieras volver a diagnosticar, solo busca el dispositivo nuevamente.');
-        }
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById(tabName).classList.add('active');
-        }
-
-        // Funciones del Asistente Claude
-        function toggleAI() {
-            const assistant = document.getElementById('aiAssistant');
-            aiCollapsed = !aiCollapsed;
-            assistant.classList.toggle('collapsed');
-        }
-
-        function addAIMessage(sender, text) {
-            const chat = document.getElementById('aiChat');
-            const msg = document.createElement('div');
-            msg.className = `ai-message ${sender}`;
-            
-            const icon = sender === 'claude' ? '🤖 Claude' : '👤 Tú';
-            msg.innerHTML = `<div class="sender">${icon}</div><div>${text}</div>`;
-            
-            chat.appendChild(msg);
-            chat.scrollTop = chat.scrollHeight;
-        }
-
-        async function sendToAI() {
-            const input = document.getElementById('aiInput');
-            const text = input.value.trim();
-            if (!text) return;
-
-            addAIMessage('user', text);
-            input.value = '';
-
-            const btn = document.getElementById('aiSendBtn');
-            btn.disabled = true;
-            btn.textContent = '...';
-
-            // Simular respuesta de Claude (en producción usarías la API real)
-            await sleep(1000);
-
-            let response = generateAIResponse(text);
-            addAIMessage('claude', response);
-
-            btn.disabled = false;
-            btn.textContent = 'Enviar';
-        }
-
-        function generateAIResponse(question) {
-            const q = question.toLowerCase();
-
-            // Respuestas específicas basadas en contexto
-            if (q.includes('conectar') || q.includes('bluetooth') || q.includes('elm327')) {
-                return 'Para conectar el ELM327:\n\n1. Inserta el dispositivo en el puerto OBD-II (usualmente bajo el volante)\n2. Enciende el vehículo (al menos ACC)\n3. Habilita Bluetooth en tu teléfono\n4. Presiona "Buscar Dispositivo"\n5. Selecciona tu ELM327 de la lista\n\nSi no aparece, intenta desemparejarlo en configuración de Bluetooth y buscar de nuevo.';
-            }
-
-            if (q.includes('código') || q.includes('dtc') || q.includes('error')) {
-                return 'Los códigos de error (DTCs) te indican problemas específicos:\n\n• P0XXX = Tren motriz (motor, transmisión)\n• C0XXX = Chasis (frenos, suspensión)\n• B0XXX = Carrocería (airbags, cerraduras)\n• U0XXX = Red/comunicación\n\nCuando leas códigos, te explicaré cada uno y cómo solucionarlos. ¿Ya escaneaste?';
-            }
-
-            if (q.includes('rpm') || q.includes('velocidad') || q.includes('dato') || q.includes('valor')) {
-                return 'Los valores que ves son en tiempo real:\n\n• RPM: Normal en ralentí 600-900\n• Temperatura: Óptimo 85-95°C\n• Voltaje: Saludable 13.5-14.5V\n• Load: Indica qué tan exigido está el motor\n\nValores fuera de rango pueden indicar problemas. ¿Ves algo extraño?';
-            }
-
-            if (q.includes('mantenimiento') || q.includes('cuidar') || q.includes('consejo')) {
-                return `Para ${currentBrand || 'tu vehículo'}:\n\n• Cambia aceite cada 5,000-7,500 km\n• Revisa filtros (aire, combustible, aceite)\n• Verifica niveles de fluidos\n• Escanea códigos cada mes\n• Mantén presión de llantas correcta\n\n¿Quieres más detalles sobre algo específico?`;
-            }
-
-            if (q.includes('marca') || q.includes('toyota') || q.includes('honda')) {
-                return currentBrand 
-                    ? `Perfecto, estás trabajando con un ${currentBrand}. Esta marca es conocida por su confiabilidad. ¿Necesitas ayuda con algo específico de tu ${currentBrand}?`
-                    : 'Primero selecciona tu marca en la sección superior. Esto me ayudará a darte información más específica. 🚗';
-            }
-
-            // Respuesta general
-            return 'Entiendo tu pregunta. Puedo ayudarte con:\n\n• Conexión del ELM327\n• Interpretación de códigos\n• Explicación de valores\n• Consejos de mantenimiento\n• Solución de problemas\n\n¿Podrías ser más específico sobre qué necesitas?';
-        }
-
-        function askQuick(question) {
-            document.getElementById('aiInput').value = question;
-            sendToAI();
-        }
-
-        function askClaude(question) {
-            if (!aiCollapsed) toggleAI();
-            setTimeout(() => {
-                document.getElementById('aiInput').value = question;
-                sendToAI();
-            }, 300);
-        }
-
-        // Inicialización
-        window.addEventListener('beforeunload', () => {
-            if (bluetoothDevice && bluetoothDevice.gatt.connected) {
-                bluetoothDevice.gatt.disconnect();
-            }
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Satellite, 
+  Activity, 
+  Cpu, 
+  Zap, 
+  Trash2, 
+  Terminal as TermIcon, 
+  Box, 
+  Info, 
+  ChevronRight, 
+  AlertCircle 
+} from 'lucide-react';
+import * as THREE from 'three';
+
+// --- CONFIGURACIÓN TÉCNICA MASTER ---
+const WINNING_UUID = '000018f0-0000-1000-8000-00805f9b34fb';
+const BACKUP_UUIDS = [
+  '0000fff0-0000-1000-8000-00805f9b34fb',
+  '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+  '0000ffe0-0000-1000-8000-00805f9b34fb'
+];
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('diag');
+  const [isConnected, setIsConnected] = useState(false);
+  const [logs, setLogs] = useState([{ time: new Date().toLocaleTimeString(), text: "Sistema Quantum V10.5 Listo. Socio Millán al mando.", type: "sys" }]);
+  const [dtcs, setDtcs] = useState([]);
+  const [deviceInfo, setDeviceInfo] = useState({ name: "Desconectado", battery: "0.0V" });
+  const [isScanning, setIsScanning] = useState(false);
+  
+  const obdCharRef = useRef(null);
+  const bleDeviceRef = useRef(null);
+  const threeRootRef = useRef(null);
+  const consoleEndRef = useRef(null);
+
+  // Auto-scroll para la terminal
+  useEffect(() => {
+    consoleEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [logs]);
+
+  // --- MOTOR 3D HOLOGRÁFICO ---
+  useEffect(() => {
+    if (activeTab === 'lab' && threeRootRef.current) {
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, threeRootRef.current.clientWidth / 300, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(threeRootRef.current.clientWidth, 300);
+      threeRootRef.current.appendChild(renderer.domElement);
+
+      const light = new THREE.PointLight(0x22d3ee, 5, 100);
+      light.position.set(10, 10, 10);
+      scene.add(light);
+      scene.add(new THREE.AmbientLight(0x404040, 2));
+
+      const geometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
+      const material = new THREE.MeshPhongMaterial({ 
+        color: 0x22d3ee, 
+        wireframe: true, 
+        transparent: true, 
+        opacity: 0.8,
+        emissive: 0x22d3ee,
+        emissiveIntensity: 0.5
+      });
+      const torusKnot = new THREE.Mesh(geometry, material);
+      scene.add(torusKnot);
+
+      camera.position.z = 4;
+
+      const animate = () => {
+        requestAnimationFrame(animate);
+        torusKnot.rotation.x += 0.01;
+        torusKnot.rotation.y += 0.01;
+        renderer.render(scene, camera);
+      };
+      animate();
+
+      return () => {
+        if (threeRootRef.current) threeRootRef.current.innerHTML = '';
+      };
+    }
+  }, [activeTab]);
+
+  // --- LÓGICA DE COMUNICACIÓN BLUETOOTH ---
+  const addLog = (text, type = "sys") => {
+    setLogs(prev => [...prev, { time: new Date().toLocaleTimeString(), text, type }]);
+  };
+
+  const connectDevice = async () => {
+    try {
+      addLog("Iniciando Discovery Loop Cuántico...", "sys");
+      const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: [WINNING_UUID, ...BACKUP_UUIDS]
+      });
+
+      addLog(`Vinculado con: ${device.name}`, "sys");
+      const server = await device.gatt.connect();
+      const services = await server.getPrimaryServices();
+      
+      let foundChar = null;
+      for (const s of services) {
+        const chars = await s.getCharacteristics();
+        for (const c of chars) {
+          if (c.properties.write || c.properties.writeWithoutResponse) {
+            foundChar = c;
+            break;
+          }
+        }
+        if (foundChar) break;
+      }
+
+      if (!foundChar) throw new Error("No se halló canal de datos abierto.");
+
+      if (foundChar.properties.notify) {
+        await foundChar.startNotifications();
+        foundChar.addEventListener('characteristicvaluechanged', (e) => {
+          const val = new TextDecoder().decode(e.target.value).trim();
+          if (val) addLog(val, "rx");
         });
+      }
 
-        // Mensaje de bienvenida expandido
-        setTimeout(() => {
-            addAIMessage('claude', `💡 Consejo: Si tienes problemas con la conexión Bluetooth, intenta:\n\n1. Desemparejar el ELM327 en configuración\n2. Reiniciar el Bluetooth\n3. Apagar y encender el vehículo\n4. Buscar nuevamente\n\n¡Estoy aquí para ayudarte en cada paso! 🚀`);
-        }, 2000);
-    </script>
-</body>
-</html>
+      obdCharRef.current = foundChar;
+      bleDeviceRef.current = device;
+      setIsConnected(true);
+      setDeviceInfo(prev => ({ ...prev, name: device.name }));
+      addLog("Enlace VLink Establecido. Mandando ATI.", "sys");
+      await sendCommand("ATI");
+    } catch (err) {
+      addLog(`Error: ${err.message}`, "err");
+    }
+  };
+
+  const sendCommand = async (cmd) => {
+    if (!obdCharRef.current) return;
+    try {
+      await obdCharRef.current.writeValue(new TextEncoder().encode(cmd + "\r"));
+      addLog(cmd, "tx");
+    } catch (e) {
+      addLog("Fallo en canal de datos.", "err");
+    }
+  };
+
+  const readDTC = async () => {
+    if (!isConnected) return;
+    setIsScanning(true);
+    addLog("Pidiendo códigos de falla (Modo 03)...", "sys");
+    await sendCommand("03");
+    // Simulacro de decodificación para visualización si no hay respuesta real inmediata
+    setTimeout(() => {
+      setIsScanning(false);
+      // Aquí se procesaría la respuesta real RX
+    }, 2000);
+  };
+
+  // --- COMPONENTES DE UI ---
+  const NavButton = ({ id, label, icon: Icon }) => (
+    <button 
+      onClick={() => setActiveTab(id)}
+      className={`flex-1 flex flex-col items-center py-3 rounded-2xl transition-all ${activeTab === id ? 'bg-cyan-500/20 text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500 hover:bg-slate-800'}`}
+    >
+      <Icon size={18} className="mb-1" />
+      <span className="text-[10px] font-black uppercase tracking-widest italic">{label}</span>
+    </button>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30">
+      
+      {/* Header Premium */}
+      <header className="p-4 bg-slate-900/50 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg shadow-lg shadow-cyan-500/20">
+              <Zap size={20} className="text-slate-950" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black tracking-tighter italic uppercase leading-none">
+                Propart <span className="text-cyan-400">Master</span>
+              </h1>
+              <p className="text-[9px] font-bold text-slate-500 tracking-[0.3em] uppercase mt-1">Socio: Millán | V10.5 Quantum</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3 bg-slate-950/50 px-4 py-2 rounded-full border border-white/5 shadow-inner">
+            <div className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${isConnected ? 'bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse' : 'bg-slate-700'}`}></div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              {isConnected ? 'Link Active' : 'Offline'}
+            </span>
+          </div>
+        </div>
+
+        <nav className="max-w-md mx-auto flex gap-2 mt-4 bg-slate-950/50 p-1 rounded-2xl border border-white/5">
+          <NavButton id="diag" label="Escanear" icon={Activity} />
+          <NavButton id="bench" label="Test Banco" icon={Cpu} />
+          <NavButton id="lab" label="3D Lab" icon={Box} />
+        </nav>
+      </header>
+
+      <main className="flex-grow p-4 max-w-4xl mx-auto w-full space-y-6 overflow-y-auto">
+        
+        {activeTab === 'diag' && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={connectDevice}
+                className={`p-6 rounded-3xl flex flex-col items-center gap-3 border transition-all shadow-xl ${isConnected ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-400' : 'bg-slate-900 border-white/5 text-slate-400'}`}
+              >
+                <Satellite size={28} className={isConnected ? 'animate-pulse' : ''} />
+                <span className="text-[10px] font-black uppercase tracking-widest">Sincronizar Vlink</span>
+              </button>
+              
+              <button 
+                onClick={readDTC}
+                disabled={!isConnected}
+                className="bg-slate-900 border border-white/5 p-6 rounded-3xl flex flex-col items-center gap-3 text-amber-500 shadow-xl disabled:opacity-30 disabled:grayscale transition-all hover:bg-slate-800"
+              >
+                <Cpu size={28} className={isScanning ? 'animate-spin' : ''} />
+                <span className="text-[10px] font-black uppercase tracking-widest">Leer Fallas (DTC)</span>
+              </button>
+            </div>
+
+            <div className="bg-slate-900/50 rounded-3xl border border-white/5 p-6 shadow-2xl">
+              <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 italic">
+                <AlertCircle size={14} className="text-rose-500" />
+                Códigos en Memoria ECU
+              </h3>
+              
+              {dtcs.length === 0 ? (
+                <div className="py-12 border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-700">
+                  <Info size={40} className="mb-2 opacity-20" />
+                  <p className="text-[10px] font-bold uppercase italic tracking-widest">Sin datos de diagnóstico</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Mapeo de DTCs */}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'bench' && (
+          <div className="space-y-4 animate-in fade-in">
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => sendCommand("ATI")} className="bg-slate-900 border border-white/5 p-5 rounded-2xl flex flex-col items-center gap-2 hover:bg-slate-800 transition-colors">
+                <Cpu size={20} className="text-emerald-400" />
+                <span className="text-[9px] font-black uppercase">Hardware Info</span>
+              </button>
+              <button onClick={() => sendCommand("ATRV")} className="bg-slate-900 border border-white/5 p-5 rounded-2xl flex flex-col items-center gap-2 hover:bg-slate-800 transition-colors">
+                <Zap size={20} className="text-amber-400" />
+                <span className="text-[9px] font-black uppercase">Leer Voltaje</span>
+              </button>
+            </div>
+
+            <div className="terminal-box p-4 flex flex-col h-96 shadow-2xl">
+              <div className="flex justify-between items-center mb-3 border-b border-white/10 pb-2">
+                <span className="text-[10px] font-black text-cyan-400 uppercase italic flex items-center gap-2">
+                  <TermIcon size={12} />
+                  Quantum Engineering Log
+                </span>
+                <button 
+                  onClick={() => setLogs([])}
+                  className="text-[9px] text-slate-500 hover:text-white transition-colors"
+                >
+                  PURGAR
+                </button>
+              </div>
+              <div className="flex-grow overflow-y-auto custom-scroll space-y-1 font-mono text-[11px]">
+                {logs.map((log, i) => (
+                  <div key={i} className="flex gap-2">
+                    <span className="text-slate-700 font-bold">[{log.time}]</span>
+                    <span className={
+                      log.type === 'tx' ? 'text-white font-bold italic' : 
+                      log.type === 'rx' ? 'text-cyan-400 font-black' : 
+                      log.type === 'err' ? 'text-rose-500' : 'text-slate-500'
+                    }>
+                      {log.type === 'tx' ? 'ENVIANDO > ' : log.type === 'rx' ? 'RECIBIDO < ' : 'ESTADO | '}
+                      {log.text}
+                    </span>
+                  </div>
+                ))}
+                <div ref={consoleEndRef} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'lab' && (
+          <div className="space-y-4 animate-in fade-in">
+            <div className="bg-slate-900 border border-cyan-500/20 rounded-3xl overflow-hidden shadow-2xl relative">
+              <div ref={threeRootRef} id="canvas-3d" />
+              <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
+                <p className="text-xs font-black text-white uppercase tracking-[0.4em] italic drop-shadow-md">Inspección Holográfica</p>
+              </div>
+            </div>
+            
+            <div className="bg-slate-900/50 p-5 rounded-2xl border border-white/5 border-l-4 border-amber-500">
+                <h4 className="text-[10px] font-black text-amber-500 uppercase italic">Referencia de Banqueo</h4>
+                <div className="mt-2 text-[11px] text-slate-300 space-y-1 font-medium">
+                  <p>• Pin 16: Alimentación (+) 12V Batería</p>
+                  <p>• Pin 04: Tierra (-) Chasis</p>
+                  <p>• Pin 05: Tierra (-) Señal</p>
+                </div>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* Footer Command Line */}
+      <footer className="p-4 bg-slate-900 border-t border-white/5 sticky bottom-0 z-50">
+        <div className="max-w-4xl mx-auto flex gap-2">
+          <input 
+            type="text" 
+            placeholder="Enviar AT o HEX Manual (Ej: 03)..."
+            className="flex-grow bg-slate-950 border border-white/10 rounded-2xl px-5 py-3.5 text-xs text-white outline-none focus:ring-1 focus:ring-cyan-500 transition-all font-bold uppercase placeholder:text-slate-800"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                sendCommand(e.currentTarget.value.toUpperCase());
+                e.currentTarget.value = '';
+              }
+            }}
+          />
+          <button 
+            onClick={() => {
+              const input = document.querySelector('input');
+              sendCommand(input.value.toUpperCase());
+              input.value = '';
+            }}
+            className="bg-cyan-600 p-4 rounded-2xl text-slate-950 active:scale-90 transition-transform shadow-lg shadow-cyan-900/20"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+        <p className="text-center text-[7px] text-slate-700 font-bold uppercase tracking-[0.5em] mt-3 italic italic">
+          JULS AI SPECIALIST | PROPART DIAGNOSTIC MASTER © 2026 | SOCIO MILLÁN
+        </p>
+      </footer>
+    </div>
+  );
+}
