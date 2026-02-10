@@ -2,434 +2,793 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PROPART MASTER HUB V12 | TITANIUM</title>
-    
-    <!-- ARSENAL TECNOLÓGICO -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProPart - Sistema Completo con Base de Datos</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        :root { --neon: #06b6d4; --bg: #020617; --card: #0f172a; --success: #10b981; --warn: #f59e0b; --danger: #f43f5e; }
-        
-        body { 
-            background-color: var(--bg); 
-            color: #e2e8f0; 
-            font-family: 'Segoe UI', system-ui, sans-serif; 
-            overflow: hidden; 
-            height: 100vh;
-            margin: 0;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-
-        /* UI Premium Glassmorphism */
-        .glass { 
-            background: rgba(15, 23, 42, 0.95); 
-            backdrop-filter: blur(20px); 
-            border: 1px solid rgba(255,255,255,0.08); 
-            border-radius: 1.5rem; 
-            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
         }
-        
-        .active-tab { 
-            background: rgba(6, 182, 212, 0.15); 
-            border-bottom: 2px solid var(--neon); 
-            color: var(--neon); 
+        .header h1 { font-size: 2em; margin-bottom: 10px; }
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 15px;
         }
-
-        /* Botón Maestro de Sincronización */
-        .btn-sync { 
-            background: linear-gradient(135deg, #059669 0%, #10b981 100%); 
-            color: white; 
-            font-weight: 900; 
-            letter-spacing: 1px;
-            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
-            transition: all 0.2s ease;
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 15px 15px 0 0;
+            overflow-x: auto;
         }
-        .btn-sync:active { transform: scale(0.96); filter: brightness(1.1); }
-
-        /* Terminal de Datos */
-        .terminal { 
-            background: rgba(0, 0, 0, 0.85); 
-            border: 1px solid rgba(6, 182, 212, 0.2); 
-            border-radius: 1rem; 
-            font-family: 'Consolas', monospace; 
+        .tab {
+            flex: 1;
+            min-width: 80px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            background: white;
+            border: none;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #666;
         }
-
-        /* Viewport 3D */
-        #hologram-viewport {
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .tab-content {
+            background: white;
+            border-radius: 0 0 15px 15px;
+            padding: 25px;
+            display: none;
+            min-height: 500px;
+        }
+        .tab-content.active { display: block; }
+        .status-box {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+        }
+        .status-box.connected {
+            background: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .sensor-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        .sensor-card h3 {
+            font-size: 0.85em;
+            color: #667eea;
+            margin-bottom: 6px;
+        }
+        .sensor-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+            margin: 6px 0;
+        }
+        .search-box {
             width: 100%;
-            height: 320px;
-            background: radial-gradient(circle at center, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
-            border-radius: 1.5rem;
-            cursor: grab;
+            padding: 15px;
+            font-size: 1.1em;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            margin: 15px 0;
         }
-        #hologram-viewport:active { cursor: grabbing; }
-
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        
-        @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(6, 182, 212, 0); } 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); } }
-        .status-live { animation: pulse-ring 2s infinite; }
-        
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .quick-btn {
+            padding: 10px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+            font-size: 0.9em;
+        }
+        .pinout-result {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .pin-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .pin-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        .pin-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        .pin-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        .wire-color {
+            display: inline-block;
+            width: 50px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid #333;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        .dtc-item {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border-left: 5px solid #f44336;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .dtc-code {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #f44336;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .hidden { display: none !important; }
+        @media (max-width: 768px) {
+            .sensor-grid {
+                grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            }
+        }
     </style>
 </head>
-<body class="flex flex-col select-none">
+<body>
+    <div class="header">
+        <h1>⚡ PROPART DIAGNOSTIC PRO</h1>
+        <p>Sistema Completo Multimarca - Fernando Millán</p>
+        <p style="font-size: 0.9em;">777 683 8196 | 221 956 7392</p>
+    </div>
 
-    <!-- HEADER: Identidad Propart Master -->
-    <header class="glass mx-3 mt-3 p-4 flex flex-col items-center border-b border-white/5 sticky top-0 z-50">
-        <div class="flex items-center justify-between w-full">
-            <div class="flex items-center gap-3">
-                <div class="p-2 bg-cyan-500 rounded-lg shadow-lg shadow-cyan-500/30 text-black font-black text-[10px]">V12</div>
-                <div class="leading-none">
-                    <h1 class="text-xl font-black italic tracking-tighter text-white">PROPART <span class="text-cyan-400">HUB</span></h1>
-                    <p class="text-[9px] font-bold text-slate-500 tracking-[0.3em] uppercase">SOCIO: MILLÁN</p>
-                </div>
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('scanner')">📡 SCANNER</button>
+            <button class="tab" onclick="switchTab('sensores')">📊 SENSORES</button>
+            <button class="tab" onclick="switchTab('database')">🔍 BASE DATOS</button>
+            <button class="tab" onclick="switchTab('pinouts')">📍 PINOUTS</button>
+            <button class="tab" onclick="switchTab('dtc')">⚠️ CÓDIGOS</button>
+        </div>
+
+        <!-- TAB: SCANNER -->
+        <div id="tab-scanner" class="tab-content active">
+            <h2 style="color: #667eea; margin-bottom: 20px;">📡 Scanner OBD2</h2>
+            <div class="status-box" id="status">🔴 DESCONECTADO</div>
+            <div style="text-align: center;">
+                <button class="btn-primary" id="btnConnect" style="font-size: 1.2em; padding: 15px 30px;">🔍 CONECTAR</button>
+                <button class="btn-danger" id="btnDisconnect" style="display: none;">❌ DESCONECTAR</button>
             </div>
-            <!-- Indicador de Estado -->
-            <div class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-full border border-white/10">
-                <div id="bt-led" class="w-2 h-2 rounded-full bg-slate-600 transition-colors duration-300"></div>
-                <span id="bt-status" class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">OFFLINE</span>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn-warning" id="btnDTC" style="display: none;">📋 LEER CÓDIGOS</button>
+                <button class="btn-warning" id="btnClearDTC" style="display: none;">🗑️ BORRAR CÓDIGOS</button>
+            </div>
+            <div id="dtcResult" style="display: none; margin-top: 20px;">
+                <h3 style="color: #ff9800; margin-bottom: 15px;">📋 Códigos Detectados</h3>
+                <div id="dtcList"></div>
             </div>
         </div>
-        
-        <!-- Navegación Rápida -->
-        <nav class="flex mt-4 bg-slate-900/60 p-1 rounded-2xl border border-white/5 w-full gap-1">
-            <button onclick="switchTab('scan')" id="tab-scan-btn" class="flex-1 py-2.5 text-[10px] font-bold uppercase rounded-xl text-slate-400 transition-all active-tab">Escáner</button>
-            <button onclick="switchTab('bench')" id="tab-bench-btn" class="flex-1 py-2.5 text-[10px] font-bold uppercase rounded-xl text-slate-400 transition-all">Banqueo</button>
-            <button onclick="switchTab('3d')" id="tab-3d-btn" class="flex-1 py-2.5 text-[10px] font-bold uppercase rounded-xl text-slate-400 transition-all">Ingeniería 3D</button>
-        </nav>
-    </header>
 
-    <main class="flex-grow overflow-y-auto custom-scroll p-4 space-y-6">
-
-        <!-- MÓDULO 1: ESCÁNER BT (LA LUPA DE MILLÁN) -->
-        <section id="content-scan" class="tab-content block space-y-4 fade-in">
-            <!-- Panel de Conexión -->
-            <div class="glass p-6 border border-cyan-500/20 text-center relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50"></div>
-                <h3 class="text-[10px] font-black text-cyan-400 uppercase tracking-[0.2em] mb-6">Protocolo de Enlace Seguro</h3>
-                
-                <button onclick="conectarScanner()" id="connectBtn" class="w-full py-5 btn-sync rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 mb-4">
-                    <i class="fas fa-satellite-dish animate-pulse"></i> Sincronizar vLink
-                </button>
-                <p class="text-[9px] text-slate-500 font-bold italic">Soporte: iOS (ISSC) • Android • PC</p>
+        <!-- TAB: SENSORES -->
+        <div id="tab-sensores" class="tab-content">
+            <h2 style="color: #667eea; margin-bottom: 20px;">📊 Sensores en Tiempo Real</h2>
+            <div class="sensor-grid">
+                <div class="sensor-card"><h3>🔄 RPM</h3><div class="sensor-value" id="rpm">----</div><span>rpm</span></div>
+                <div class="sensor-card"><h3>🚗 Velocidad</h3><div class="sensor-value" id="speed">----</div><span>km/h</span></div>
+                <div class="sensor-card"><h3>🌡️ Temp Motor</h3><div class="sensor-value" id="temp">----</div><span>°C</span></div>
+                <div class="sensor-card"><h3>❄️ Temp Aire</h3><div class="sensor-value" id="iat">----</div><span>°C</span></div>
+                <div class="sensor-card"><h3>⚡ Voltaje</h3><div class="sensor-value" id="voltage">----</div><span>V</span></div>
+                <div class="sensor-card"><h3>💪 Carga</h3><div class="sensor-value" id="load">----</div><span>%</span></div>
+                <div class="sensor-card"><h3>🎯 TPS</h3><div class="sensor-value" id="tps">----</div><span>%</span></div>
+                <div class="sensor-card"><h3>📊 MAP</h3><div class="sensor-value" id="map">----</div><span>kPa</span></div>
+                <div class="sensor-card"><h3>💨 MAF</h3><div class="sensor-value" id="maf">----</div><span>g/s</span></div>
+                <div class="sensor-card"><h3>🔧 STFT</h3><div class="sensor-value" id="stft">----</div><span>%</span></div>
+                <div class="sensor-card"><h3>🔧 LTFT</h3><div class="sensor-value" id="ltft">----</div><span>%</span></div>
+                <div class="sensor-card"><h3>🌊 O2</h3><div class="sensor-value" id="o2">----</div><span>V</span></div>
             </div>
+        </div>
 
-            <!-- Botonera de Diagnóstico -->
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="sendAT('03')" class="glass py-4 border-l-4 border-amber-500 active:scale-95 transition-transform flex flex-col items-center gap-1">
-                    <i class="fas fa-microscope text-amber-500 text-lg"></i>
-                    <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">Leer DTCs</span>
-                </button>
-                <button onclick="sendAT('04')" class="glass py-4 border-l-4 border-rose-500 active:scale-95 transition-transform flex flex-col items-center gap-1">
-                    <i class="fas fa-trash-alt text-rose-500 text-lg"></i>
-                    <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">Borrar Fallas</span>
-                </button>
-            </div>
-
-            <!-- Terminal de Ingeniería -->
-            <div class="terminal p-4 flex flex-col h-72 shadow-2xl">
-                <div class="flex justify-between items-center mb-3 border-b border-white/10 pb-2">
-                    <span class="text-[10px] font-black text-cyan-400 uppercase italic">Flujo de Datos en Vivo</span>
-                    <button onclick="document.getElementById('console').innerHTML = ''" class="text-[9px] text-slate-500 hover:text-white font-bold uppercase transition-colors">Limpiar</button>
-                </div>
-                <div id="console" class="flex-grow font-mono text-[11px] overflow-y-auto custom-scroll space-y-1">
-                    <div class="text-slate-600 italic">> Sistema V12 Titanium Listo.</div>
-                    <div class="text-slate-600 italic">> Esperando enlace del socio Millán...</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- MÓDULO 2: BANQUEO (PRUEBAS EN CASA) -->
-        <section id="content-bench" class="tab-content hidden space-y-4 fade-in">
-            <div class="glass p-6 text-center border border-white/5">
-                <h2 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Pruebas de Hardware</h2>
-                <div class="grid grid-cols-2 gap-4">
-                    <button onclick="sendAT('ATI')" class="p-4 bg-slate-900 rounded-xl border border-white/10 active:bg-slate-800">
-                        <span class="block text-emerald-400 font-black text-xl mb-1"><i class="fas fa-id-card"></i></span>
-                        <span class="text-[9px] text-slate-300 uppercase font-bold">ID Chip</span>
-                    </button>
-                    <button onclick="sendAT('ATRV')" class="p-4 bg-slate-900 rounded-xl border border-white/10 active:bg-slate-800">
-                        <span class="block text-amber-400 font-black text-xl mb-1"><i class="fas fa-bolt"></i></span>
-                        <span class="text-[9px] text-slate-300 uppercase font-bold">Voltaje</span>
-                    </button>
-                </div>
+        <!-- TAB: BASE DE DATOS -->
+        <div id="tab-database" class="tab-content">
+            <h2 style="color: #667eea; margin-bottom: 20px;">🔍 Base de Datos Técnica</h2>
+            <p style="color: #666; margin-bottom: 15px;">Busca información técnica de sensores, ECU, diagramas...</p>
+            
+            <input type="text" class="search-box" id="searchDatabase" 
+                   placeholder="🔍 Ejemplo: MAF Chevy 2007, TPS Tsuru, ECU Jetta..."
+                   onkeyup="if(event.key==='Enter')searchDB()">
+            
+            <div style="margin: 20px 0;">
+                <h3 style="color: #667eea; margin-bottom: 10px;">Búsquedas Rápidas:</h3>
+                <button class="quick-btn" onclick="quickSearchDB('maf chevy 2007')">MAF Chevy 2007</button>
+                <button class="quick-btn" onclick="quickSearchDB('tps tsuru')">TPS Tsuru</button>
+                <button class="quick-btn" onclick="quickSearchDB('maf tsuru')">MAF Tsuru</button>
+                <button class="quick-btn" onclick="quickSearchDB('ecu jetta')">ECU Jetta 121p</button>
+                <button class="quick-btn" onclick="quickSearchDB('o2 sensor')">Sensor O2</button>
+                <button class="quick-btn" onclick="quickSearchDB('ckp')">CKP</button>
+                <button class="quick-btn" onclick="quickSearchDB('map')">MAP</button>
             </div>
             
-            <div class="glass p-5 border-l-4 border-cyan-500">
-                <h4 class="font-black text-xs text-cyan-400 uppercase italic mb-2">Referencia de Pines</h4>
-                <div class="flex justify-between items-center text-[10px] text-slate-300">
-                    <span>Pin 16: <b class="text-white">12V (+)</b></span>
-                    <span>Pin 4/5: <b class="text-white">Tierra (-)</b></span>
-                </div>
+            <div id="dbResults"></div>
+        </div>
+
+        <!-- TAB: PINOUTS -->
+        <div id="tab-pinouts" class="tab-content">
+            <h2 style="color: #667eea; margin-bottom: 20px;">📍 Pinouts de Sensores y ECU</h2>
+            <p style="color: #666; margin-bottom: 15px;">Selecciona marca y modelo para ver pinouts</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+                <select id="pinout-brand" onchange="updatePinoutModels()" style="padding: 12px; font-size: 1em; border: 2px solid #667eea; border-radius: 8px;">
+                    <option value="">-- Selecciona Marca --</option>
+                    <option value="nissan">Nissan</option>
+                    <option value="chevrolet">Chevrolet</option>
+                    <option value="vw">Volkswagen</option>
+                    <option value="ford">Ford</option>
+                    <option value="toyota">Toyota</option>
+                    <option value="honda">Honda</option>
+                </select>
+                
+                <select id="pinout-model" style="padding: 12px; font-size: 1em; border: 2px solid #667eea; border-radius: 8px;">
+                    <option value="">-- Selecciona Modelo --</option>
+                </select>
             </div>
-        </section>
-
-        <!-- MÓDULO 3: LABORATORIO 3D (HOLOGRAMAS) -->
-        <section id="content-3d" class="tab-content hidden space-y-4 fade-in">
-            <div class="flex justify-between items-center px-2">
-                <h2 class="text-xs font-black uppercase tracking-widest text-slate-400">Visor de Ingeniería</h2>
-                <span class="text-[9px] text-cyan-400 font-bold uppercase animate-pulse">3D Render Active</span>
-            </div>
-
-            <div class="glass overflow-hidden relative border border-cyan-500/20 shadow-2xl">
-                <div id="hologram-viewport"></div>
-                <div class="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
-                    <p id="proj-name" class="text-[10px] font-black text-white uppercase tracking-[0.3em] drop-shadow-md">Cargando Modelo...</p>
-                </div>
-            </div>
-
-            <div class="flex gap-2 overflow-x-auto pb-2">
-                <button onclick="update3D('generator')" class="flex-shrink-0 px-4 py-3 glass border border-white/10 active:bg-slate-800">
-                    <span class="text-[9px] font-bold text-cyan-400 uppercase">Generador</span>
-                </button>
-                <button onclick="update3D('iron')" class="flex-shrink-0 px-4 py-3 glass border border-white/10 active:bg-slate-800">
-                    <span class="text-[9px] font-bold text-amber-400 uppercase">Cautín</span>
-                </button>
-                <button onclick="update3D('canbus')" class="flex-shrink-0 px-4 py-3 glass border border-white/10 active:bg-slate-800">
-                    <span class="text-[9px] font-bold text-emerald-400 uppercase">Bus CAN</span>
-                </button>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- FOOTER: COMANDOS MANUALES -->
-    <footer class="p-4 glass border-t border-white/5 sticky bottom-0 mx-3 mb-3 backdrop-blur-xl z-50">
-        <div class="flex gap-2 max-w-3xl mx-auto">
-            <input type="text" id="cmdInput" placeholder="CMD HEX/AT..." class="flex-grow bg-slate-950 border border-slate-700 rounded-xl px-5 py-3 text-white text-xs outline-none focus:ring-1 focus:ring-cyan-500 font-mono uppercase tracking-wider">
-            <button onclick="sendManual()" class="bg-cyan-600 px-6 rounded-xl flex items-center justify-center active:scale-90 transition-transform shadow-lg shadow-cyan-900/30">
-                <i class="fas fa-paper-plane text-white text-xs"></i>
+            
+            <button class="btn-primary" onclick="showPinouts()" style="width: 100%; padding: 15px; font-size: 1.1em;">
+                📍 VER PINOUTS DISPONIBLES
             </button>
+            
+            <div id="pinoutResults"></div>
         </div>
-    </footer>
 
-    <!-- SCRIPT MAESTRO -->
+        <!-- TAB: CÓDIGOS DTC -->
+        <div id="tab-dtc" class="tab-content">
+            <h2 style="color: #667eea; margin-bottom: 20px;">⚠️ Base de Datos de Códigos DTC</h2>
+            
+            <input type="text" class="search-box" id="searchDTC" 
+                   placeholder="🔍 Buscar código: P0141, P0036, C0XXX..."
+                   onkeyup="if(event.key==='Enter')searchDTCCode()">
+            
+            <div style="margin: 20px 0;">
+                <button class="quick-btn" onclick="searchDTCCode('P0141')">P0141</button>
+                <button class="quick-btn" onclick="searchDTCCode('P0036')">P0036</button>
+                <button class="quick-btn" onclick="searchDTCCode('P0606')">P0606</button>
+                <button class="quick-btn" onclick="searchDTCCode('P0501')">P0501</button>
+                <button class="quick-btn" onclick="searchDTCCode('P0171')">P0171</button>
+                <button class="quick-btn" onclick="searchDTCCode('P0300')">P0300</button>
+            </div>
+            
+            <div id="dtcCodeResults"></div>
+        </div>
+    </div>
+
     <script>
-        // --- MOTOR BLUETOOTH "TITANIUM LINK" ---
-        let obdChar = null;
-        let bleDevice = null;
-        
-        // UUIDs Maestros (El 18f0 es la clave para tu vLink)
-        const UUIDS = [
-            '000018f0-0000-1000-8000-00805f9b34fb', // Priority 1: Generic OBDII / iOS vLink
-            '0000fff0-0000-1000-8000-00805f9b34fb', // Priority 2: Standard vGate
-            '49535343-fe7d-4ae5-8fa9-9fafd205e455', // Priority 3: ISSC Protocol
-            '0000ffe0-0000-1000-8000-00805f9b34fb'  // Priority 4: Serial BLE
-        ];
-
-        function log(msg, type = 'sys') {
-            const consoleEl = document.getElementById('console');
-            const time = new Date().toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' });
-            let color = 'text-slate-500';
-            let prefix = 'SYS';
-
-            if (type === 'tx') { color = 'text-white font-bold'; prefix = 'TX >'; }
-            if (type === 'rx') { color = 'text-cyan-400 font-bold'; prefix = 'RX <'; }
+        // ========== BASE DE DATOS COMPLETA MULTIMARCA ==========
+        const TECHNICAL_DATABASE = {
+            // CHEVROLET - MAF
+            'maf_chevy_2007': {
+                name: 'Sensor MAF (Mass Air Flow)',
+                brand: 'Chevrolet',
+                models: 'Aveo, Optra 2007-2011',
+                engine: '1.6L DOHC',
+                partNumber: '96481558',
+                pins: 5,
+                pinout: [
+                    {pin: 1, function: 'Señal MAF', color: 'AMARILLO', colorHex: '#FFD700', voltage: '0.5-5V', normal: '1.0-1.5V ralentí, 3.5-4.5V @ 3000 RPM'},
+                    {pin: 2, function: 'Tierra sensor', color: 'NEGRO', colorHex: '#000000', voltage: '0V', normal: 'Continuidad <5 Ohms'},
+                    {pin: 3, function: 'Alimentación 12V', color: 'ROJO', colorHex: '#FF0000', voltage: '12V', normal: '11-14V con switch ON'},
+                    {pin: 4, function: 'Señal IAT', color: 'VERDE', colorHex: '#00FF00', voltage: '0.5-4.5V', normal: '2.5V @ 20°C'},
+                    {pin: 5, function: 'Tierra IAT', color: 'CAFE', colorHex: '#8B4513', voltage: '0V', normal: 'Continuidad <5 Ohms'}
+                ],
+                test: 'Con motor apagado, llave ON: Pin 3 = 12V. Con motor en ralentí: Pin 1 = 1.0-1.5V. A 3000 RPM: Pin 1 = 3.5-4.5V.',
+                location: 'Entre filtro de aire y cuerpo de aceleración'
+            },
             
-            const entry = document.createElement('div');
-            entry.className = "flex gap-2 text-[10px] hover:bg-white/5 p-0.5 rounded";
-            entry.innerHTML = `<span class="text-slate-600 font-mono">[${time}]</span><span class="${color} font-mono">${prefix} ${msg}</span>`;
+            // NISSAN - MAF
+            'maf_tsuru': {
+                name: 'Sensor MAF',
+                brand: 'Nissan',
+                models: 'Tsuru III 2004-2012',
+                engine: 'GA16DE 1.6L 16V',
+                partNumber: '22680-4M500',
+                pins: 4,
+                pinout: [
+                    {pin: 1, function: 'Alimentación 12V', color: 'ROJO/BLANCO', colorHex: '#FF69B4', voltage: '12V', normal: '12V con switch ON'},
+                    {pin: 2, function: 'Señal MAF', color: 'VERDE/NEGRO', colorHex: '#90EE90', voltage: '0-5V', normal: '1.2V ralentí, 4V @ 3000 RPM'},
+                    {pin: 3, function: 'Tierra', color: 'NEGRO', colorHex: '#000000', voltage: '0V', normal: 'Continuidad'},
+                    {pin: 4, function: 'Señal IAT', color: 'AMARILLO', colorHex: '#FFFF00', voltage: '0.5-4V', normal: '2.0V @ 25°C'}
+                ],
+                test: 'Llave ON: Pin 1 = 12V. Motor ralentí: Pin 2 = 1.0-1.5V. Acelerar: debe subir suavemente a 4V.',
+                location: 'Después del filtro de aire, antes del plenum'
+            },
             
-            consoleEl.appendChild(entry);
-            consoleEl.scrollTop = consoleEl.scrollHeight;
-        }
-
-        async function conectarScanner() {
-            const btn = document.getElementById('connectBtn');
-            try {
-                log("Iniciando barrido de servicios...");
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Conectando...';
-                
-                // Pedimos dispositivo con filtro abierto de UUIDs
-                bleDevice = await navigator.bluetooth.requestDevice({ 
-                    acceptAllDevices: true, 
-                    optionalServices: UUIDS 
-                });
-                
-                log(`Dispositivo seleccionado: ${bleDevice.name}`);
-                const server = await bleDevice.gatt.connect();
-                log("Servidor GATT: Conectado");
-                
-                // Loop de descubrimiento profundo
-                const services = await server.getPrimaryServices();
-                log(`Servicios encontrados: ${services.length}`);
-
-                for (const s of services) {
-                    const chars = await s.getCharacteristics();
-                    for (const c of chars) {
-                        if (c.properties.write || c.properties.writeWithoutResponse) {
-                            obdChar = c;
-                            log(`Canal de Escritura OK: ${s.uuid.substring(0,8)}`);
-                            break;
-                        }
-                    }
-                    if (obdChar) break;
-                }
-
-                if (!obdChar) throw new Error("No se encontró canal de datos writable.");
-
-                // Suscripción a notificaciones
-                if (obdChar.properties.notify) {
-                    await obdChar.startNotifications();
-                    obdChar.addEventListener('characteristicvaluechanged', (e) => { 
-                        const val = new TextDecoder().decode(e.target.value).trim();
-                        if(val) log(val, 'rx'); 
-                    });
-                    log("Notificaciones activadas.");
-                }
-
-                // UI Update
-                document.getElementById('bt-led').classList.replace('bg-slate-700', 'bg-emerald-500');
-                document.getElementById('bt-led').classList.add('status-live');
-                document.getElementById('bt-status').innerText = "ONLINE";
-                document.getElementById('bt-status').className = "text-[9px] font-black text-emerald-500 uppercase tracking-widest italic";
-                btn.innerHTML = '<i class="fas fa-link"></i> VINCULADO';
-                btn.classList.add('opacity-50', 'cursor-not-allowed');
-
-                log("Enlace Total. Reseteando ELM327...");
-                await sendAT("ATZ");
-
-            } catch (err) {
-                log(`ERROR: ${err.message}`, 'sys');
-                btn.innerHTML = '<i class="fas fa-redo"></i> REINTENTAR';
-                alert("Carnal, checa que el vLink tenga corriente (Pin 16).");
+            // NISSAN - TPS
+            'tps_tsuru': {
+                name: 'TPS (Throttle Position Sensor)',
+                brand: 'Nissan',
+                models: 'Tsuru III 1992-2017',
+                engine: 'GA16DE',
+                partNumber: '22620-1E400',
+                pins: 3,
+                pinout: [
+                    {pin: 1, function: 'Tierra', color: 'NEGRO', colorHex: '#000000', voltage: '0V', normal: 'Continuidad'},
+                    {pin: 2, function: 'Señal TPS', color: 'AZUL', colorHex: '#0000FF', voltage: '0.5-4.5V', normal: '0.5V cerrado, 4.5V abierto'},
+                    {pin: 3, function: 'Alimentación 5V', color: 'ROJO', colorHex: '#FF0000', voltage: '5V', normal: '5V ± 0.2V'}
+                ],
+                test: 'Acelerador cerrado: Pin 2 = 0.5V. Acelerador abierto (WOT): Pin 2 = 4.5V. Debe variar suavemente.',
+                location: 'Lado derecho del cuerpo de aceleración'
+            },
+            
+            // VW - ECU
+            'ecu_jetta_a4': {
+                name: 'ECU Bosch Motronic ME7.5',
+                brand: 'Volkswagen',
+                models: 'Jetta A4, Golf A4 1999-2007',
+                engine: '2.0L AEG',
+                partNumber: '06A 906 032',
+                pins: 121,
+                connector: 'Dual: 80 pines + 41 pines',
+                pinout: [
+                    {pin: 1, function: 'KL15 Ignición', color: 'ROJO', colorHex: '#FF0000', voltage: '12V', normal: '12V con contacto'},
+                    {pin: 2, function: 'KL30 Batería', color: 'ROJO GRUESO', colorHex: '#8B0000', voltage: '12V', normal: '12V permanente'},
+                    {pin: 3, function: 'Tierra 1', color: 'CAFE', colorHex: '#8B4513', voltage: '0V', normal: 'Continuidad'},
+                    {pin: 4, function: 'Tierra 2', color: 'CAFE', colorHex: '#8B4513', voltage: '0V', normal: 'Continuidad'},
+                    {pin: 10, function: 'Sensor G28 CKP+', color: 'VERDE/NEGRO', colorHex: '#006400', voltage: 'AC', normal: '0.5-2V AC'},
+                    {pin: 11, function: 'Sensor G28 CKP-', color: 'VERDE/BLANCO', colorHex: '#90EE90', voltage: 'AC', normal: '0.5-2V AC'}
+                ],
+                test: 'Verificar tierra en pines 3,4,5. KL30 = 12V permanente. KL15 = 12V con contacto. Sensor G28 debe dar señal AC.',
+                location: 'Debajo del parabrisas, lado conductor'
             }
-        }
-
-        async function sendAT(cmd) {
-            if (!obdChar) { log("Error: No hay conexión.", "sys"); return; }
-            try {
-                await obdChar.writeValue(new TextEncoder().encode(cmd + "\r"));
-                log(cmd, 'tx');
-            } catch (e) { log("Fallo envío Bluetooth.", "sys"); }
-        }
-
-        function sendManual() {
-            const input = document.getElementById('cmdInput');
-            if (input.value) { sendAT(input.value.toUpperCase()); input.value = ""; }
-        }
-
-        // --- MOTOR VISUAL SPA ---
-        function switchTab(id) {
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(b => { 
-                b.classList.remove('active-tab', 'text-cyan-400'); 
-                b.classList.add('text-slate-500'); 
-            });
-            
-            document.getElementById(`content-${id}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`tab-${id}-btn`);
-            activeBtn.classList.add('active-tab', 'text-cyan-400');
-            activeBtn.classList.remove('text-slate-500');
-        }
-
-        // --- MOTOR 3D THREE.JS ---
-        let scene, camera, renderer, object;
-        function init3D() {
-            const container = document.getElementById('hologram-viewport');
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
-            
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(container.clientWidth, container.clientHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            container.appendChild(renderer.domElement);
-
-            const light = new THREE.PointLight(0x06b6d4, 2, 50);
-            light.position.set(10, 10, 10);
-            scene.add(light);
-            scene.add(new THREE.AmbientLight(0x404040, 1));
-            
-            camera.position.z = 5;
-            
-            // Default Object: Generator
-            update3D('generator');
-            animate();
-
-            // Interacción Táctil
-            let isDragging = false;
-            let previousMousePosition = { x: 0, y: 0 };
-
-            container.addEventListener('mousedown', () => isDragging = true);
-            window.addEventListener('mouseup', () => isDragging = false);
-            
-            container.addEventListener('mousemove', (e) => {
-                if (isDragging && object) {
-                    const deltaMove = { x: e.offsetX - previousMousePosition.x, y: e.offsetY - previousMousePosition.y };
-                    object.rotation.y += deltaMove.x * 0.01;
-                    object.rotation.x += deltaMove.y * 0.01;
-                }
-                previousMousePosition = { x: e.offsetX, y: e.offsetY };
-            });
-            
-            // Soporte Touch
-            container.addEventListener('touchstart', (e) => {
-                isDragging = true;
-                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            });
-            container.addEventListener('touchend', () => isDragging = false);
-            container.addEventListener('touchmove', (e) => {
-                if (isDragging && object) {
-                    const deltaMove = { x: e.touches[0].clientX - previousMousePosition.x, y: e.touches[0].clientY - previousMousePosition.y };
-                    object.rotation.y += deltaMove.x * 0.01;
-                    object.rotation.x += deltaMove.y * 0.01;
-                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-                }
-            });
-        }
-
-        function update3D(type) {
-            if (object) scene.remove(object);
-            
-            const material = new THREE.MeshPhongMaterial({ 
-                color: 0x06b6d4, 
-                wireframe: true, 
-                transparent: true, 
-                opacity: 0.8,
-                emissive: 0x06b6d4,
-                emissiveIntensity: 0.4
-            });
-            
-            let geometry;
-            const label = document.getElementById('proj-name');
-
-            if (type === 'generator') {
-                geometry = new THREE.TorusKnotGeometry(1.2, 0.4, 100, 16);
-                label.innerText = "GENERADOR MASTER";
-                material.color.setHex(0x06b6d4);
-            } else if (type === 'iron') {
-                geometry = new THREE.CylinderGeometry(0.5, 0.5, 3, 32);
-                label.innerText = "CAUTÍN DIGITAL";
-                material.color.setHex(0xf59e0b); material.emissive.setHex(0xf59e0b);
-            } else if (type === 'canbus') {
-                geometry = new THREE.IcosahedronGeometry(2, 1);
-                label.innerText = "NODO BUS CAN";
-                material.color.setHex(0x10b981); material.emissive.setHex(0x10b981);
-            }
-            
-            object = new THREE.Mesh(geometry, material);
-            scene.add(object);
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            if (object) object.rotation.y += 0.005;
-            renderer.render(scene, camera);
-        }
-
-        // Init
-        window.onload = init3D;
-        window.onresize = () => {
-            const c = document.getElementById('hologram-viewport');
-            camera.aspect = c.clientWidth / c.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(c.clientWidth, c.clientHeight);
         };
+
+        // BASE CÓDIGOS DTC
+        const DTC_DATABASE = {
+            'P0036': {desc: 'Sensor O2 calentador B1S2 - Circuito', solution: '1. Verificar cables del sensor O2\n2. Medir resistencia calentador (5-20Ω)\n3. Revisar fusible\n4. Reemplazar sensor O2', sistemas: 'Sistema de escape, sensores O2'},
+            'P0141': {desc: 'Sensor O2 calentador B1S2 - Mal funcionamiento', solution: '1. Verificar conexión eléctrica\n2. Probar voltaje calentador (12V)\n3. Medir resistencia\n4. Reemplazar sensor O2 Bank 1 Sensor 2', sistemas: 'Sistema de escape'},
+            'P0501': {desc: 'Sensor de velocidad VSS - Rango/rendimiento', solution: '1. Verificar sensor VSS en transmisión\n2. Revisar cables y conectores\n3. Limpiar sensor magnético\n4. Verificar engranaje impulsor\n5. Reemplazar VSS', sistemas: 'Sistema de velocímetro, transmisión'},
+            'P0606': {desc: 'ECM/PCM - Error de procesador', solution: '1. Verificar voltaje batería (12-14V)\n2. Revisar tierras de ECU\n3. Actualizar firmware ECU\n4. Reemplazar ECU (GRAVE)', sistemas: 'Computadora motor'},
+            'P0100': {desc: 'MAF - Circuito mal funcionamiento', solution: 'Verificar cables MAF, limpiar sensor, verificar voltaje alimentación', sistemas: 'Sistema de admisión'},
+            'P0101': {desc: 'MAF - Rango/rendimiento', solution: 'Limpiar MAF con limpiador específico, verificar fugas aire, reemplazar si falla', sistemas: 'Sistema de admisión'},
+            'P0102': {desc: 'MAF - Voltaje bajo', solution: 'Verificar conexión, cables rotos, cortocircuito a tierra', sistemas: 'Sistema de admisión'},
+            'P0103': {desc: 'MAF - Voltaje alto', solution: 'Verificar cortocircuito a 12V, sensor dañado', sistemas: 'Sistema de admisión'},
+            'P0171': {desc: 'Sistema muy pobre Bank 1', solution: 'Revisar fugas vacío, MAF sucio, inyectores, presión combustible, sensor O2', sistemas: 'Sistema de combustible'},
+            'P0172': {desc: 'Sistema muy rico Bank 1', solution: 'Revisar inyectores con fuga, MAF sucio, presión combustible alta, sensor O2', sistemas: 'Sistema de combustible'},
+            'P0300': {desc: 'Fallas encendido aleatorias', solution: 'Revisar bujías, bobinas, compresión, inyectores, presión combustible', sistemas: 'Sistema de encendido'},
+            'P0301': {desc: 'Falla encendido cilindro 1', solution: 'Verificar bujía cil. 1, bobina, cable, inyector, compresión', sistemas: 'Sistema de encendido'},
+            'P0420': {desc: 'Catalizador eficiencia baja Bank 1', solution: 'Verificar sensores O2, reemplazar catalizador si falla', sistemas: 'Sistema de escape'},
+            'P0122': {desc: 'TPS - Voltaje bajo circuito A', solution: 'Verificar voltaje referencia 5V, conexión a tierra, cables rotos', sistemas: 'Sistema acelerador'},
+            'P0123': {desc: 'TPS - Voltaje alto circuito A', solution: 'Verificar cortocircuito a 5V, ajustar o reemplazar TPS', sistemas: 'Sistema acelerador'},
+            'P0335': {desc: 'Sensor posición cigüeñal CKP - Circuito', solution: 'Verificar sensor CKP, cables, distancia al volante (0.5-1.5mm)', sistemas: 'Sistema de encendido'},
+            'P0340': {desc: 'Sensor posición árbol levas CMP - Circuito', solution: 'Verificar sensor CMP, cables, sincronización', sistemas: 'Sistema de encendido'}
+        };
+
+        // MODELOS POR MARCA
+        const MODELS_BY_BRAND = {
+            nissan: ['Tsuru III', 'Sentra B13', 'Sentra B14', 'Sentra B15', 'Platina', 'Tiida', 'Versa'],
+            chevrolet: ['Chevy C2', 'Aveo', 'Spark', 'Astra', 'Meriva', 'Optra'],
+            vw: ['Jetta A4', 'Golf A4', 'Pointer', 'Beetle', 'Polo', 'Bora'],
+            ford: ['Focus', 'Fiesta', 'Ikon', 'Escort', 'Fusion'],
+            toyota: ['Corolla', 'Yaris', 'Camry', 'Sienna'],
+            honda: ['Civic', 'Accord', 'Fit', 'CR-V']
+        };
+
+        // ========== BLUETOOTH ==========
+        const UUIDS = ['000018f0-0000-1000-8000-00805f9b34fb', '0000fff0-0000-1000-8000-00805f9b34fb'];
+        let service, writeChar, notifyChar, loop;
+        let receivedData = '';
+        let waitingForDTC = false;
+
+        document.getElementById('btnConnect').addEventListener('click', async () => {
+            try {
+                document.getElementById('status').innerText = "🔍 Buscando...";
+                const device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: UUIDS
+                });
+                const server = await device.gatt.connect();
+                for (let uuid of UUIDS) {
+                    try { service = await server.getPrimaryService(uuid); break; } catch(e) {}
+                }
+                const characteristics = await service.getCharacteristics();
+                for (let char of characteristics) {
+                    if (char.properties.write) writeChar = char;
+                    if (char.properties.notify) notifyChar = char;
+                }
+                await notifyChar.startNotifications();
+                notifyChar.addEventListener('characteristicvaluechanged', handleData);
+                
+                document.getElementById('status').innerText = "✅ CONECTADO";
+                document.getElementById('status').classList.add('connected');
+                document.getElementById('btnConnect').style.display = 'none';
+                document.getElementById('btnDisconnect').style.display = 'inline-block';
+                document.getElementById('btnDTC').style.display = 'inline-block';
+                document.getElementById('btnClearDTC').style.display = 'inline-block';
+                
+                await send("AT Z"); await wait(1500);
+                await send("AT E0"); await wait(300);
+                await send("AT SP0"); await wait(500);
+                startLoop();
+            } catch(error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        document.getElementById('btnDisconnect').addEventListener('click', () => {
+            if (loop) clearInterval(loop);
+            document.getElementById('status').innerText = "🔴 DESCONECTADO";
+            document.getElementById('status').classList.remove('connected');
+            document.getElementById('btnConnect').style.display = 'inline-block';
+            document.getElementById('btnDisconnect').style.display = 'none';
+            document.getElementById('btnDTC').style.display = 'none';
+            document.getElementById('btnClearDTC').style.display = 'none';
+        });
+
+        document.getElementById('btnDTC').addEventListener('click', async () => {
+            if (loop) clearInterval(loop);
+            receivedData = '';
+            waitingForDTC = true;
+            document.getElementById('dtcResult').style.display = 'block';
+            document.getElementById('dtcList').innerHTML = '<p style="text-align:center; padding:20px;">⏳ ESCANEANDO...</p>';
+            await send("03"); await wait(1000);
+            await send("03 01"); await wait(1000);
+            await send("03 02"); await wait(1000);
+            setTimeout(() => {
+                waitingForDTC = false;
+                displayDTC();
+                setTimeout(() => startLoop(), 2000);
+            }, 1000);
+        });
+
+        function displayDTC() {
+            const codes = new Set();
+            const matches = receivedData.match(/[PCBU][0-9A-F]{4}/gi);
+            if (matches) matches.forEach(c => codes.add(c.toUpperCase()));
+            
+            const hexPattern = /43[\s]+((?:[0-9A-F]{2}[\s]*)+)/gi;
+            const hexMatches = [...receivedData.matchAll(hexPattern)];
+            for (let match of hexMatches) {
+                const hex = match[1].replace(/\s/g, '');
+                for (let i = 0; i < hex.length; i += 4) {
+                    const chunk = hex.substring(i, i + 4);
+                    if (chunk !== '0000' && chunk.length === 4) {
+                        const dtc = hexToDTC(chunk);
+                        if (dtc) codes.add(dtc);
+                    }
+                }
+            }
+            
+            const listEl = document.getElementById('dtcList');
+            if (codes.size === 0) {
+                listEl.innerHTML = '<p style="text-align:center; padding:40px; font-size:1.2em;">✅ SIN CÓDIGOS DE FALLA</p>';
+            } else {
+                listEl.innerHTML = Array.from(codes).map(code => {
+                    const info = DTC_DATABASE[code] || {desc: 'Código genérico', solution: 'Consultar manual', sistemas: 'N/A'};
+                    return `
+                        <div class="dtc-item">
+                            <div class="dtc-code">❌ ${code}</div>
+                            <div style="font-size:1.1em; margin:10px 0;">${info.desc}</div>
+                            <div style="background:#f9f9f9; padding:15px; border-radius:8px; margin-top:10px;">
+                                <strong>🔧 Solución:</strong><br>${info.solution.split('\n').join('<br>')}
+                            </div>
+                            <div style="margin-top:10px; color:#666;"><strong>Sistema:</strong> ${info.sistemas}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function hexToDTC(hex) {
+            const firstDigit = parseInt(hex[0], 16);
+            const prefixes = ['P0','P1','P2','P3','C0','C1','C2','C3','B0','B1','B2','B3','U0','U1','U2','U3'];
+            return prefixes[firstDigit] + hex.substring(1);
+        }
+
+        document.getElementById('btnClearDTC').addEventListener('click', async () => {
+            if (confirm('¿Borrar códigos?')) {
+                if (loop) clearInterval(loop);
+                await send("04");
+                document.getElementById('dtcResult').style.display = 'none';
+                alert('✅ Códigos borrados');
+                await wait(500);
+                startLoop();
+            }
+        });
+
+        async function send(cmd) {
+            if (!writeChar) return;
+            await writeChar.writeValue(new TextEncoder().encode(cmd + "\r"));
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function handleData(event) {
+            const value = new TextDecoder().decode(event.target.value).trim();
+            if (!value || value === '>') return;
+            
+            if (waitingForDTC) {
+                receivedData += value + ' ';
+                return;
+            }
+            
+            // Actualizar sensores
+            if (value.includes('41 0C')) {
+                const hex = value.replace(/\s/g, '').substring(4, 8);
+                if (hex.length === 4) document.getElementById('rpm').textContent = Math.round(parseInt(hex, 16) / 4);
+            }
+            if (value.includes('41 0D')) {
+                const hex = value.replace(/\s/g, '').substring(4, 6);
+                if (hex.length === 2) document.getElementById('speed').textContent = parseInt(hex, 16);
+            }
+            if (value.includes('41 05')) {
+                const hex = value.replace(/\s/g, '').substring(4, 6);
+                if (hex.length === 2) document.getElementById('temp').textContent = parseInt(hex, 16) - 40;
+            }
+            if (value.includes('41 0F')) {
+                const hex = value.replace(/\s/g, '').substring(4, 6);
+                if (hex.length === 2) document.getElementById('iat').textContent = parseInt(hex, 16) - 40;
+            }
+            if (value.includes('V')) {
+                const match = value.match(/(\d+\.?\d*)/);
+                if (match) document.getElementById('voltage').textContent = parseFloat(match[1]).toFixed(1);
+            }
+            if (value.includes('41 04')) {
+                const hex = value.replace(/\s/g, '').substring(4, 6);
+                if (hex.length === 2) document.getElementById('load').textContent = Math.round((parseInt(hex, 16) * 100) / 255);
+            }
+            if (value.includes('41 11')) {
+                const hex = value.replace(/\s/g, '').substring(4, 6);
+                if (hex.length === 2) document.getElementById('tps').textContent = Math.round((parseInt(hex, 16) * 100) / 255);
+            }
+            if (value.includes('41 0B')) {
+                const hex = value.replace(/\s/g, '').substring(4, 6);
+                if (hex.length === 2) document.getElementById('map').textContent = parseInt(hex, 16);
+            }
+            if (value.includes('41 10')) {
+                const hex = value.replace(/\s/g, '').substring(4, 8);
+                if (hex.length === 4) document.getElementById('maf').textContent = (parseInt(hex, 16) / 100).toFixed(1);
+            }
+            if (value.includes('41 06')) {
+                const hex = value.replace(/\s/g, '').substring(4, 6);
+                if (hex.length === 2) document.getElementById('stft').textContent = ((parseInt(hex, 16) - 128) * 100 / 128).toFixed(1);
+            }
+            if (value.includes('41 07')) {
+                const hex = value.replace(/\s/g, '').substring(4, 6);
+                if (hex.length === 2) document.getElementById('ltft').textContent = ((parseInt(hex, 16) - 128) * 100 / 128).toFixed(1);
+            }
+            if (value.includes('41 14')) {
+                const hex = value.replace(/\s/g, '').substring(4, 6);
+                if (hex.length === 2) document.getElementById('o2').textContent = (parseInt(hex, 16) / 200).toFixed(2);
+            }
+        }
+
+        function startLoop() {
+            loop = setInterval(async () => {
+                await send("010C"); await wait(80);
+                await send("010D"); await wait(80);
+                await send("0105"); await wait(80);
+                await send("010F"); await wait(80);
+                await send("0104"); await wait(80);
+                await send("0111"); await wait(80);
+                await send("010B"); await wait(80);
+                await send("0110"); await wait(80);
+                await send("0106"); await wait(80);
+                await send("0107"); await wait(80);
+                await send("0114"); await wait(80);
+                await send("ATRV");
+            }, 2000);
+        }
+
+        // ========== BASE DE DATOS ==========
+        function searchDB() {
+            const query = document.getElementById('searchDatabase').value;
+            quickSearchDB(query);
+        }
+
+        function quickSearchDB(query) {
+            document.getElementById('searchDatabase').value = query;
+            const q = query.toLowerCase();
+            let found = null;
+            
+            for (let key in TECHNICAL_DATABASE) {
+                const item = TECHNICAL_DATABASE[key];
+                const searchText = `${item.name} ${item.brand} ${item.models} ${key}`.toLowerCase();
+                if (searchText.includes(q)) {
+                    found = item;
+                    break;
+                }
+            }
+            
+            if (found) {
+                displayDBResult(found);
+            } else {
+                document.getElementById('dbResults').innerHTML = '<div class="pinout-result"><p style="text-align:center; padding:40px;">❌ No se encontró información para: ' + query + '</p></div>';
+            }
+        }
+
+        function displayDBResult(data) {
+            let html = `
+                <div class="pinout-result">
+                    <h2 style="color:#667eea; margin-bottom:15px;">${data.name}</h2>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin:15px 0; padding:15px; background:#f9f9f9; border-radius:8px;">
+                        <div><strong>Marca:</strong> ${data.brand}</div>
+                        <div><strong>Modelos:</strong> ${data.models}</div>
+                        <div><strong>Motor:</strong> ${data.engine || 'N/A'}</div>
+                        <div><strong>Parte #:</strong> ${data.partNumber || 'N/A'}</div>
+                        <div><strong>Pines:</strong> ${data.pins || data.pinout.length}</div>
+                        <div><strong>Ubicación:</strong> ${data.location || 'N/A'}</div>
+                    </div>
+                    
+                    <h3 style="color:#667eea; margin:20px 0 10px 0;">📍 Pinout</h3>
+                    <table class="pin-table">
+                        <thead>
+                            <tr>
+                                <th>Pin</th>
+                                <th>Función</th>
+                                <th>Color</th>
+                                <th>Voltaje</th>
+                                <th>Normal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            data.pinout.forEach(pin => {
+                html += `
+                    <tr>
+                        <td><strong>${pin.pin}</strong></td>
+                        <td>${pin.function}</td>
+                        <td><span class="wire-color" style="background:${pin.colorHex};"></span>${pin.color}</td>
+                        <td>${pin.voltage}</td>
+                        <td>${pin.normal}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                    
+                    <div style="background:#e8f5e9; padding:20px; border-radius:10px; margin-top:20px; border-left:5px solid #4CAF50;">
+                        <h3 style="color:#4CAF50; margin-bottom:15px;">🔧 Procedimiento de Prueba</h3>
+                        <pre style="white-space:pre-wrap; font-family:inherit;">${data.test}</pre>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('dbResults').innerHTML = html;
+        }
+
+        // ========== PINOUTS POR MARCA/MODELO ==========
+        function updatePinoutModels() {
+            const brand = document.getElementById('pinout-brand').value;
+            const modelSelect = document.getElementById('pinout-model');
+            modelSelect.innerHTML = '<option value="">-- Selecciona Modelo --</option>';
+            
+            if (brand && MODELS_BY_BRAND[brand]) {
+                MODELS_BY_BRAND[brand].forEach(model => {
+                    modelSelect.innerHTML += `<option value="${model}">${model}</option>`;
+                });
+            }
+        }
+
+        function showPinouts() {
+            const brand = document.getElementById('pinout-brand').value;
+            const model = document.getElementById('pinout-model').value;
+            
+            if (!brand) {
+                alert('Selecciona una marca');
+                return;
+            }
+            
+            let html = '<div class="pinout-result"><h3 style="color:#667eea; margin-bottom:20px;">📍 Pinouts Disponibles</h3>';
+            let found = false;
+            
+            for (let key in TECHNICAL_DATABASE) {
+                const item = TECHNICAL_DATABASE[key];
+                if (item.brand.toLowerCase() === brand.toLowerCase()) {
+                    if (!model || item.models.toLowerCase().includes(model.toLowerCase())) {
+                        found = true;
+                        html += `
+                            <div style="background:#f9f9f9; padding:15px; margin:10px 0; border-radius:8px; cursor:pointer;" onclick="quickSearchDB('${item.name} ${item.brand}')">
+                                <strong>${item.name}</strong><br>
+                                <span style="color:#666; font-size:0.9em;">${item.models}</span>
+                            </div>
+                        `;
+                    }
+                }
+            }
+            
+            if (!found) {
+                html += '<p style="text-align:center; padding:20px;">No hay pinouts disponibles para esta selección</p>';
+            }
+            
+            html += '</div>';
+            document.getElementById('pinoutResults').innerHTML = html;
+        }
+
+        // ========== BÚSQUEDA DTC ==========
+        function searchDTCCode(code) {
+            if (!code) code = document.getElementById('searchDTC').value;
+            document.getElementById('searchDTC').value = code;
+            
+            code = code.toUpperCase().trim();
+            const info = DTC_DATABASE[code];
+            
+            if (info) {
+                document.getElementById('dtcCodeResults').innerHTML = `
+                    <div class="dtc-item">
+                        <div class="dtc-code">${code}</div>
+                        <div style="font-size:1.2em; margin:15px 0;"><strong>Descripción:</strong> ${info.desc}</div>
+                        <div style="background:#f9f9f9; padding:20px; border-radius:10px; margin:15px 0;">
+                            <h4 style="color:#667eea; margin-bottom:10px;">🔧 Solución:</h4>
+                            <pre style="white-space:pre-wrap; font-family:inherit;">${info.solution}</pre>
+                        </div>
+                        <div style="background:#e3f2fd; padding:15px; border-radius:8px;">
+                            <strong>Sistema Afectado:</strong> ${info.sistemas}
+                        </div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('dtcCodeResults').innerHTML = `
+                    <div class="pinout-result">
+                        <p style="text-align:center; padding:40px;">❌ Código ${code} no encontrado en la base de datos</p>
+                    </div>
+                `;
+            }
+        }
+
+        // ========== UI ==========
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            const tabElement = event?.target || document.querySelector(`[onclick*="${tab}"]`);
+            if (tabElement) tabElement.classList.add('active');
+            document.getElementById(`tab-${tab}`).classList.add('active');
+        }
     </script>
 </body>
 </html>
